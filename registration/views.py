@@ -1,6 +1,7 @@
 from rest_framework import permissions, status, exceptions
 from rest_framework.permissions import IsAuthenticated
-from datetime import timedelta,timezone
+from datetime import timedelta, timezone
+from django.utils import timezone
 from rest_framework.response import Response
 from rest_framework.request import Request
 from rest_framework.views import APIView
