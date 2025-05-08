@@ -67,6 +67,8 @@ class UserDetailView(APIView):
 
     def get(self, request, *args, **kwargs):
         user = request.user
+        # Debugging check: Confirm user object is valid
+        print(f"User details: {user}")
         serializer = UserSerializer(user)
         return Response(serializer.data)
 
