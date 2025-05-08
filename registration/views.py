@@ -13,19 +13,20 @@ from .serializers import (
     UserUpdateSerializer, ServiceProviderUpdateSerializer, UserSerializer
 )
 from .authentication import JWTAuthentication, create_access_token, create_refresh_token, decode_refresh_token
-import re
+
 
 # Customer Registration View
 class CustomerRegistrationView(APIView):
     def post(self, request):
         user = request.data
         print(f'User data received: {user}')
-        if User.objects.filter(email=user['email']).exists():
-            raise exceptions.APIException('Email already exists!')
-        if User.objects.filter(username=user['username']).exists():
-            raise exceptions.APIException('Username already exists!')
-        if user['password'] != user['confirm_password']:
-            raise exceptions.APIException('Passwords do not match!')
+        
+        if User.objects.filter(email=user.get('email')).exists():
+            return Response({'error': 'Email already exists!'}, status=400)
+        if User.objects.filter(username=user.get('username')).exists():
+            return Response({'error': 'Username already exists!'}, status=400)
+        if user.get('password') != user.get('confirm_password'):
+            return Response({'error': 'Passwords do not match!'}, status=400)
 
         serializer = CustomerRegistrationSerializer(data=user)
         serializer.is_valid(raise_exception=True)
@@ -47,103 +48,38 @@ class ServiceProviderRegistrationView(APIView):
 # User List View
 class UserAPIView(APIView):
     authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]  # Ensure only authenticated users can access this view
+    permission_classes = [IsAuthenticated]
 
     def get(self, request):
         user = request.user
-        is_admin = request.auth.get('is_admin', False)
         serializer = UserSerializer(user)
-        return Response({
-            'user': serializer.data,
-            'is_admin': is_admin
-        })
+        return Response({'user': serializer.data, 'is_admin': user.is_superuser})
 
 
-# User Detail View
-class UserDetailView(APIView):
-    authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request, id):
-        """
-        Retrieves details of a specific user by their ID.
-        Allows staff to view any user's details, regular users can only view their own details.
-        """
-        try:
-            user = User.objects.get(id=id)
-            if request.user.is_staff or request.user == user:
-                serializer = UserSerializer(user)
-                return Response(serializer.data)
-            return Response({"detail": "You do not have permission to view this user's details."}, status=status.HTTP_403_FORBIDDEN)
-        except User.DoesNotExist:
-            return Response({"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND)
-
-
-# User Update View
-class UserUpdateView(APIView):
-    def put(self, request, id):
-        try:
-            user = User.objects.get(id=id)
-            if request.user.is_staff or request.user == user:
-                serializer = UserUpdateSerializer(user, data=request.data)
-                if serializer.is_valid():
-                    serializer.save()
-                    return Response(serializer.data)
-                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-            return Response({"detail": "You do not have permission to update this user's details."}, status=status.HTTP_403_FORBIDDEN)
-        except User.DoesNotExist:
-            return Response({"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND)
-
-
-# Service Provider Update View
-class ProviderUpdateView(APIView):
-    def put(self, request, id):
-        try:
-            user = User.objects.get(id=id)
-            if request.user.is_staff or request.user == user:
-                serializer = ServiceProviderUpdateSerializer(user, data=request.data)
-                if serializer.is_valid():
-                    serializer.save()
-                    return Response(serializer.data)
-                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-            return Response({"detail": "You do not have permission to update this user's details."}, status=status.HTTP_403_FORBIDDEN)
-        except User.DoesNotExist:
-            return Response({"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND)
-
-
-# Login View with JWT
+# Login API
 class LoginAPIView(APIView):
     def post(self, request: Request):
-        email = request.data['email']
-        password = request.data['password']
+        email = request.data.get('email')
+        password = request.data.get('password')
+
+        if not email or not password:
+            return Response({'error': 'Email and password are required'}, status=400)
+
         user = User.objects.filter(email=email).first()
-
-        if not user:
-            raise exceptions.AuthenticationFailed('Invalid email or password')
-
-        if not user.check_password(password):
-            raise exceptions.AuthenticationFailed('Invalid email or password')
+        if not user or not user.check_password(password):
+            return Response({'error': 'Invalid email or password'}, status=401)
 
         access_token = create_access_token(user.id)
         refresh_token = create_refresh_token(user.id)
 
-        # Store refresh token securely
-        UserToken.objects.create(
-            user=user,
-            token=refresh_token,
-            expired_at=timezone.now() + timedelta(days=7)
-        )
+        UserToken.objects.create(user=user, token=refresh_token, expired_at=timezone.now() + timedelta(days=7))
 
-        response = Response()
+        response = Response({'access_token': access_token, 'refresh_token': refresh_token}, status=200)
         response.set_cookie(key='refresh_token', value=refresh_token, httponly=True, secure=True)
-        response.data = {
-            'access_token': access_token,
-            'refresh_token': refresh_token
-        }
         return response
 
 
-# Refresh JWT Tokens View
+# Refresh Token API
 class RefreshAPIView(APIView):
     def post(self, request: Request):
         refresh_token = request.data.get('refresh_token') or request.COOKIES.get('refresh_token')
@@ -153,46 +89,25 @@ class RefreshAPIView(APIView):
 
         try:
             user_id = decode_refresh_token(refresh_token)
-            user = User.objects.get(pk=user_id)
+        except exceptions.AuthenticationFailed as e:
+            return Response({'error': str(e)}, status=401)
 
-            token_obj = UserToken.objects.filter(
-                user=user,
-                token=refresh_token,
-                expired_at__gt=timezone.now()
-            ).first()
-
-            if not token_obj:
-                return Response({'error': 'Invalid or expired refresh token'}, status=401)
-
-        except User.DoesNotExist:
+        user = User.objects.filter(pk=user_id).first()
+        if not user:
             return Response({'error': 'User not found'}, status=404)
-        except Exception as e:
-            return Response({'error': f'Invalid token: {str(e)}'}, status=401)
 
-        # Invalidate the old token
-        token_obj.delete()
-
-        # Generate new tokens
         new_access_token = create_access_token(user.id)
         new_refresh_token = create_refresh_token(user.id)
 
-        # Save new refresh token
-        UserToken.objects.create(
-            user=user,
-            token=new_refresh_token,
-            expired_at=timezone.now() + timedelta(days=7)
-        )
+        UserToken.objects.filter(user=user).delete()  # Remove old refresh token
+        UserToken.objects.create(user=user, token=new_refresh_token, expired_at=timezone.now() + timedelta(days=7))
 
-        response = Response({
-            'user': UserSerializer(user).data,
-            'access_token': new_access_token,
-            'refresh_token': new_refresh_token
-        })
+        response = Response({'access_token': new_access_token, 'refresh_token': new_refresh_token}, status=200)
         response.set_cookie(key='refresh_token', value=new_refresh_token, httponly=True, secure=True)
         return response
 
 
-# Service Provider List View with filters for category and location
+# Service Provider List View
 class ServiceProviderListView(APIView):
     permission_classes = [permissions.AllowAny]
 
@@ -201,25 +116,26 @@ class ServiceProviderListView(APIView):
         category = request.query_params.get('category')
         location = request.query_params.get('location')
 
+        if category:
+            queryset = queryset.filter(category=category)
+        if location:
+            queryset = queryset.filter(location=location)
+
         serializer = UserSerializer(queryset, many=True)
         return Response(serializer.data)
 
 
-# Logout View with CSRF exemption
+# Logout API
 @method_decorator(csrf_exempt, name='dispatch')
 class LogoutAPIView(APIView):
     def post(self, request: Request):
         refresh_token = request.data.get('refresh_token') or request.COOKIES.get('refresh_token')
 
         if not refresh_token:
-            return Response({'detail': 'Refresh token missing'}, status=400)
+            return Response({'error': 'Refresh token missing'}, status=400)
 
         UserToken.objects.filter(token=refresh_token).delete()
 
-        response = Response({
-            'status': 'success',
-            'message': 'Logged out successfully'
-        }, status=200)
-
+        response = Response({'status': 'success', 'message': 'Logged out successfully'}, status=200)
         response.delete_cookie(key='refresh_token')
         return response
