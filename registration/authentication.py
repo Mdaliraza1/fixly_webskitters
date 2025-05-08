@@ -34,7 +34,7 @@ class JWTAuthentication(BaseAuthentication):
         return (user, {'is_admin': user.is_superuser})
 
     # Access Token Creation
-    def create_access_token(self, user_id):
+def create_access_token(self, user_id):
         payload = {
             'user_id': user_id,
             'iat': datetime.now(timezone.utc),
@@ -44,7 +44,7 @@ class JWTAuthentication(BaseAuthentication):
         return jwt.encode(payload, secret_key, algorithm="HS256")
 
     # Access Token Decoding
-    def decode_access_token(self, token):
+def decode_access_token(self, token):
         try:
             secret_key = os.getenv('JWT_SECRET_KEY', 'default_secret')
             payload = jwt.decode(token, secret_key, algorithms=['HS256'])
@@ -57,7 +57,7 @@ class JWTAuthentication(BaseAuthentication):
             raise AuthenticationFailed(f'Error decoding token: {str(e)}')
 
     # Refresh Token Creation
-    def create_refresh_token(self, user_id):
+def create_refresh_token(self, user_id):
         payload = {
             'user_id': user_id,
             'exp': datetime.now(timezone.utc) + timedelta(days=7),  # 7 days expiration for refresh token
@@ -67,7 +67,7 @@ class JWTAuthentication(BaseAuthentication):
         return jwt.encode(payload, secret_key, algorithm="HS256")
 
     # Refresh Token Decoding
-    def decode_refresh_token(self, token):
+def decode_refresh_token(self, token):
         try:
             refresh_secret = os.getenv('JWT_REFRESH_SECRET_KEY', 'default_secret')
             payload = jwt.decode(token, refresh_secret, algorithms='HS256')

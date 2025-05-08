@@ -12,13 +12,8 @@ from .serializers import (
     CustomerRegistrationSerializer, ServiceProviderRegistrationSerializer,
     UserUpdateSerializer, ServiceProviderUpdateSerializer, UserSerializer
 )
-from .authentication import JWTAuthentication, create_access_token, create_refresh_token, decode_access_token, decode_refresh_token
+from .authentication import JWTAuthentication, create_access_token, create_refresh_token, decode_refresh_token
 import re
-
-# Define regular expressions
-email_regex = r'^[a-zA-Z0-9._%+-]+@example\.com$'
-contact_regex = r'^[0-9]{10}$'
-
 
 # Customer Registration View
 class CustomerRegistrationView(APIView):
@@ -205,6 +200,7 @@ class ServiceProviderListView(APIView):
         queryset = User.objects.filter(user_type='SERVICE_PROVIDER')
         category = request.query_params.get('category')
         location = request.query_params.get('location')
+
         serializer = UserSerializer(queryset, many=True)
         return Response(serializer.data)
 
