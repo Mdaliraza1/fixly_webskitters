@@ -1,170 +1,186 @@
-import re
-from rest_framework import serializers
-from .models import User
+from rest_framework import permissions, status, exceptions
+from rest_framework.permissions import IsAuthenticated
+from datetime import timedelta, timezone
+from django.utils import timezone
+from rest_framework.response import Response
+from rest_framework.request import Request
+from rest_framework.views import APIView
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+from .models import User, UserToken
+from .serializers import (
+    CustomerRegistrationSerializer, ServiceProviderRegistrationSerializer,
+    UserUpdateSerializer, ServiceProviderUpdateSerializer, UserSerializer
+)
+from .authentication import JWTAuthentication, create_access_token, create_refresh_token, decode_refresh_token
 
-# Regex Validators
-contact_regex = r'^[1-9]\d{9}$'
-email_regex = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
 
-class UserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = '__all__'
-        extra_kwargs = {        
-            'password': {'write_only': True}
-        }
-
-# Customer Registration Serializer
-class CustomerRegistrationSerializer(serializers.ModelSerializer):
-    confirm_password = serializers.CharField(write_only=True)  # This is only for validation
-
-    class Meta:
-        model = User
-        fields = ['email', 'first_name', 'last_name', 'password', 'confirm_password',
-                  'contact', 'gender']
-        extra_kwargs = {
-            'username': {'required': False}  # Make username optional
-        }
-
-    def validate_email(self, value):
-        if not re.match(email_regex, value):
-            raise serializers.ValidationError("Invalid email address")
-        return value
-
-    def validate_contact(self, value):
-        if not re.match(contact_regex, value):
-            raise serializers.ValidationError("Enter valid 10 digit mobile number")
-        return value
-
-    def validate_password(self, value):
-        if len(value) < 8:
-            raise serializers.ValidationError("Password must be at least 8 characters long.")
-        if not re.search(r'[A-Z]', value):
-            raise serializers.ValidationError("Password must contain at least one uppercase letter.")
-        if not re.search(r'[0-9]', value):
-            raise serializers.ValidationError("Password must contain at least one digit.")
-        return value
-
-    def validate(self, data):
-        # Check if passwords match
-        if data['password'] != data['confirm_password']:
-            raise serializers.ValidationError("Passwords do not match.")
+# Customer Registration View
+class CustomerRegistrationView(APIView):
+    def post(self, request):
+        user = request.data
+        print(f'User data received: {user}')
         
-        # Check if the email already exists
-        if User.objects.filter(email=data['email']).exists():
-            raise serializers.ValidationError("A user with this email already exists.")
+        if User.objects.filter(email=user.get('email')).exists():
+            return Response({'error': 'Email already exists!'}, status=400)
+        if user.get('password') != user.get('confirm_password'):
+            return Response({'error': 'Passwords do not match!'}, status=400)
 
-        # Check if the contact already exists
-        if User.objects.filter(contact=data['contact']).exists():
-            raise serializers.ValidationError("A user with this contact number already exists.")
-        
-        # Check if first_name and last_name are the same
-        if data['first_name'].lower() == data['last_name'].lower():
-            raise serializers.ValidationError("First name and last name cannot be the same.")
-        
-        return data
+        serializer = CustomerRegistrationSerializer(data=user)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-    def create(self, validated_data):
-        confirm_password = validated_data.pop('confirm_password', None)  # Remove confirm_password
-        password = validated_data.pop('password', None)  # Get the password value
 
-        # Set username to be the same as email if not provided
-        if not validated_data.get('username'):
-            validated_data['username'] = validated_data['email']
-        
-        instance = self.Meta.model(**validated_data)
-        if password is not None:
-            instance.set_password(password)
-        instance.save()
-        return instance
+# Service Provider Registration View
+class ServiceProviderRegistrationView(APIView):
+    permission_classes = [permissions.AllowAny]
 
-# Service Provider Registration Serializer
-class ServiceProviderRegistrationSerializer(serializers.ModelSerializer):
-    confirm_password = serializers.CharField(write_only=True)  # This is only for validation
+    def post(self, request):
+        user = request.data
+        print(f'User data received: {user}')
+        if User.objects.filter(email=user.get('email')).exists():
+            return Response({'error': 'Email already exists!'}, status=400)
+        if user.get('password') != user.get('confirm_password'):
+            return Response({'error': 'Passwords do not match!'}, status=400)
+        serializer = ServiceProviderRegistrationSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
-    class Meta:
-        model = User
-        fields = ['email', 'first_name', 'last_name', 'password', 'confirm_password',
-                  'contact', 'gender', 'location', 'category']
 
-    def validate_email(self, value):
-        if not re.match(email_regex, value):
-            raise serializers.ValidationError("Only '@example.com' emails are allowed.")
-        return value
+# User List View
+class UserAPIView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
 
-    def validate(self, data):
-        # Check if passwords match
-        if data['password'] != data['confirm_password']:
-            raise serializers.ValidationError("Passwords do not match.")
-        
-        # Check if the email already exists
-        if User.objects.filter(email=data['email']).exists():
-            raise serializers.ValidationError("A user with this email already exists.")
-        
-        # Check if the contact already exists
-        if User.objects.filter(contact=data['contact']).exists():
-            raise serializers.ValidationError("A user with this contact number already exists.")
-        
-        # Check if first_name and last_name are the same
-        if data['first_name'].lower() == data['last_name'].lower():
-            raise serializers.ValidationError("First name and last name cannot be the same.")
-        
-        return data
+    def get(self, request):
+        user = request.user
+        serializer = UserSerializer(user)
+        return Response({'user': serializer.data, 'is_admin': user.is_superuser})
 
-    def create(self, validated_data):
-        confirm_password = validated_data.pop('confirm_password', None)  # Remove confirm_password
-        password = validated_data.pop('password', None)  # Get the password value
 
-        # Set username to be the same as email if not provided
-        if not validated_data.get('username'):
-            validated_data['username'] = validated_data['email']
+# User Detail View
+class UserDetailView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
 
-        instance = self.Meta.model(**validated_data)
-        if password is not None:
-            instance.set_password(password)
-        instance.save()
-        return instance
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        serializer = UserSerializer(user)
+        return Response(serializer.data)
 
-# User Update Serializer (for Customer)
-class UserUpdateSerializer(serializers.ModelSerializer):
-    contact = serializers.CharField(validators=[contact_regex])
-    
-    class Meta:
-        model = User
-        fields = ['username', 'first_name', 'last_name', 'contact', 'gender']
 
-    def validate(self, data):
-        return data
+# User Update View
+class UserUpdateView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
 
-    def update(self, instance, validated_data):
-        # Set username to None explicitly during update
-        validated_data['username'] = None
+    def put(self, request, *args, **kwargs):
+        user = request.user
+        serializer = UserUpdateSerializer(user, data=request.data)
 
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-        instance.save()
-        return instance
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-# Service Provider Update Serializer (for Service Providers)
-class ServiceProviderUpdateSerializer(serializers.ModelSerializer):
-    contact = serializers.CharField(validators=[contact_regex])
-    location = serializers.CharField(required=False, allow_blank=True)
-    category = serializers.CharField(required=False, allow_blank=True)
 
-    class Meta:
-        model = User
-        fields = ['first_name', 'last_name', 'contact', 'gender', 'location', 'category']
+# Service Provider Update View
+class ProviderUpdateView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
 
-    def validate(self, data):
-        if not data.get('category') and self.instance.user_type == 'SERVICE_PROVIDER':
-            raise serializers.ValidationError("Category is required for service providers.")
-        return data
+    def put(self, request, *args, **kwargs):
+        user = request.user
+        serializer = ServiceProviderUpdateSerializer(user, data=request.data)
 
-    def update(self, instance, validated_data):
-        # Set username to None explicitly during update
-        validated_data['username'] = None
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-        instance.save()
-        return instance
+
+# Login API
+class LoginAPIView(APIView):
+    def post(self, request: Request):
+        email = request.data.get('email')
+        password = request.data.get('password')
+
+        if not email or not password:
+            return Response({'error': 'Email and password are required'}, status=400)
+
+        user = User.objects.filter(email=email).first()
+        if not user or not user.check_password(password):
+            return Response({'error': 'Invalid email or password'}, status=401)
+
+        access_token = create_access_token(user.id)
+        refresh_token = create_refresh_token(user.id)
+
+        UserToken.objects.create(user=user, token=refresh_token, expired_at=timezone.now() + timedelta(days=7))
+
+        response = Response({'access_token': access_token, 'refresh_token': refresh_token}, status=200)
+        response.set_cookie(key='refresh_token', value=refresh_token, httponly=True, secure=True)
+        return response
+
+
+# Refresh Token API
+class RefreshAPIView(APIView):
+    def post(self, request: Request):
+        refresh_token = request.data.get('refresh_token') or request.COOKIES.get('refresh_token')
+
+        if not refresh_token:
+            return Response({'error': 'Refresh token not provided'}, status=400)
+
+        try:
+            user_id = decode_refresh_token(refresh_token)
+        except exceptions.AuthenticationFailed as e:
+            return Response({'error': str(e)}, status=401)
+
+        user = User.objects.filter(pk=user_id).first()
+        if not user:
+            return Response({'error': 'User not found'}, status=404)
+
+        new_access_token = create_access_token(user.id)
+        new_refresh_token = create_refresh_token(user.id)
+
+        UserToken.objects.filter(user=user).delete()  # Remove old refresh token
+        UserToken.objects.create(user=user, token=new_refresh_token, expired_at=timezone.now() + timedelta(days=7))
+
+        response = Response({'access_token': new_access_token, 'refresh_token': new_refresh_token}, status=200)
+        response.set_cookie(key='refresh_token', value=new_refresh_token, httponly=True, secure=True)
+        return response
+
+
+# Service Provider List View
+class ServiceProviderListView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request):
+        queryset = User.objects.filter(user_type='SERVICE_PROVIDER')
+        category = request.query_params.get('category')
+        location = request.query_params.get('location')
+
+        if category:
+            queryset = queryset.filter(category=category)
+        if location:
+            queryset = queryset.filter(location=location)
+
+        serializer = UserSerializer(queryset, many=True)
+        return Response(serializer.data)
+
+
+# Logout API
+@method_decorator(csrf_exempt, name='dispatch')
+class LogoutAPIView(APIView):
+    def post(self, request: Request):
+        refresh_token = request.data.get('refresh_token') or request.COOKIES.get('refresh_token')
+
+        if not refresh_token:
+            return Response({'error': 'Refresh token missing'}, status=400)
+
+        UserToken.objects.filter(token=refresh_token).delete()
+
+        response = Response({'status': 'success', 'message': 'Logged out successfully'}, status=200)
+        response.delete_cookie(key='refresh_token')
+        return response
