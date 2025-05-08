@@ -5,6 +5,8 @@ from .models import User
 # Regex Validators
 contact_regex = r'^[1-9]\d{9}$'
 email_regex = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
+password_regex = r'^(?=.*[A-Z])(?=.*[0-9])(?=.*[^a-zA-Z0-9\s]).{8,}$'
+
 
 # User Serializer
 class UserSerializer(serializers.ModelSerializer):
@@ -38,12 +40,8 @@ class CustomerRegistrationSerializer(serializers.ModelSerializer):
         return value
 
     def validate_password(self, value):
-        if len(value) < 8:
-            raise serializers.ValidationError("Password must be at least 8 characters long.")
-        if not re.search(r'[A-Z]', value):
-            raise serializers.ValidationError("Password must contain at least one uppercase letter.")
-        if not re.search(r'[0-9]', value):
-            raise serializers.ValidationError("Password must contain at least one digit.")
+        if not re.match(password_regex, value):
+            raise serializers.ValidationError("Password length should be 8 and contist of UPPERCASE, lowercase, number and Symbol")
         return value
 
     def validate(self, data):
@@ -93,7 +91,17 @@ class ServiceProviderRegistrationSerializer(serializers.ModelSerializer):
 
     def validate_email(self, value):
         if not re.match(email_regex, value):
-            raise serializers.ValidationError("Only '@example.com' emails are allowed.")
+            raise serializers.ValidationError("Invalid email address")
+        return value
+
+    def validate_contact(self, value):
+        if not re.match(contact_regex, value):
+            raise serializers.ValidationError("Enter valid 10 digit mobile number")
+        return value
+
+    def validate_password(self, value):
+        if not re.match(password_regex, value):
+            raise serializers.ValidationError("Password length should be 8 and contist of UPPERCASE, lowercase, number and Symbol")
         return value
 
     def validate(self, data):
