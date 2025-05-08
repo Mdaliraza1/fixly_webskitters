@@ -1,64 +1,67 @@
 from rest_framework import permissions, status, exceptions
-from django.utils import timezone
+from rest_framework.permissions import IsAuthenticated
 from datetime import timedelta,timezone
 from rest_framework.response import Response
 from rest_framework.request import Request
 from rest_framework.views import APIView
-from django.contrib.auth import authenticate
-from rest_framework_simplejwt.tokens import RefreshToken
+
 from .models import User,UserToken
 from .serializers import (
     CustomerRegistrationSerializer, ServiceProviderRegistrationSerializer,
-    UserUpdateSerializer, PasswordChangeSerializer, LoginSerializer, UserSerializer
+    UserUpdateSerializer, ServiceProviderUpdateSerializer, UserSerializer
 )
-from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
 
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 
-from .authentication import JWTAuthentication, create_access_token, create_refresh_token, decode_refresh_token
+from .authentication import JWTAuthentication, create_access_token, create_refresh_token, decode_access_token,decode_refresh_token
 
 # Customer Registration View
 class CustomerRegistrationView(APIView):
-    permission_classes = [permissions.AllowAny]
-
     def post(self, request):
-        """
-        Handles the registration of a new customer.
-        """
-        serializer = CustomerRegistrationSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        user=request.data
+        print(f'User data received: {user}')
+        if User.objects.filter(email=user['email']).exists():
+           raise exceptions.APIException('Email already exists!')
+        if User.objects.filter(username=user['username']).exists():
+            raise exceptions.APIException('Username already exists!')
+        if user['password'] != user['password_confirm']:
+            raise exceptions.APIException('Passwords do not match!')
+
+        serializer = CustomerRegistrationSerializer(data=user)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 # Service Provider Registration View
 class ServiceProviderRegistrationView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
-        """
-        Handles the registration of a new service provider.
-        """
         serializer = ServiceProviderRegistrationSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 # User List View
-class UserListView(APIView):
+class UserAPIView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]  # Ensure only authenticated users can access this view
+
     def get(self, request):
-        """
-        Retrieves a list of all users.
-        """
-        users = User.objects.all()
-        serializer = UserSerializer(users, many=True)
-        return Response(serializer.data)
+        user = request.user
+        is_admin = request.auth.get('is_admin', False)
+        serializer = UserSerializer(user)
+        return Response({
+            'user': serializer.data,
+            'is_admin': is_admin
+        })
 
 # User Detail View
 class UserDetailView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
     
     def get(self, request, id):
         """
@@ -77,10 +80,6 @@ class UserDetailView(APIView):
 # User Update View
 class UserUpdateView(APIView):
     def put(self, request, id):
-        """
-        Allows the authenticated user to update their details. 
-        Staff can update any user's details, while regular users can only update their own.
-        """
         try:
             user = User.objects.get(id=id)
             if request.user.is_staff or request.user == user:
@@ -92,25 +91,20 @@ class UserUpdateView(APIView):
             return Response({"detail": "You do not have permission to update this user's details."}, status=status.HTTP_403_FORBIDDEN)
         except User.DoesNotExist:
             return Response({"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND)
-
-# Password Change View
-class PasswordChangeView(APIView):
-    def post(self, request):
-        """
-        Allows a user to change their password.
-        """
-    
-        user = User.objects.get(id=id)
-        if request.user.is_staff or request.user == user:
-            serializer = PasswordChangeSerializer(data=request.data)
-            if serializer.is_valid():
-                user = request.user
-            if not user.check_password(serializer.validated_data['current_password']):
-                return Response({"error": "Wrong current password."}, status=status.HTTP_400_BAD_REQUEST)
-            user.set_password(serializer.validated_data['new_password'])
-            user.save()
-            return Response({"message": "Password updated successfully."}, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+#Provider update view
+class ProviderUpdateView(APIView):
+    def put(self, request, id):
+        try:
+            user = User.objects.get(id=id)
+            if request.user.is_staff or request.user == user:
+                serializer = ServiceProviderUpdateSerializer(user, data=request.data)
+                if serializer.is_valid():
+                    serializer.save()
+                    return Response(serializer.data)
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": "You do not have permission to update this user's details."}, status=status.HTTP_403_FORBIDDEN)
+        except User.DoesNotExist:
+            return Response({"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND)
 
 # Login View with JWT
 class LoginAPIView(APIView):
@@ -141,7 +135,53 @@ class LoginAPIView(APIView):
             'refresh_token': refresh_token
         }
         return response
+class RefreshAPIView(APIView):
+    def post(self, request: Request):
+        refresh_token = request.data.get('refresh_token') or request.COOKIES.get('refresh_token')
 
+        if not refresh_token:
+            return Response({'error': 'Refresh token not provided'}, status=400)
+
+        try:
+            user_id = decode_refresh_token(refresh_token)
+            user = User.objects.get(pk=user_id)
+
+            token_obj = UserToken.objects.filter(
+                user=user,
+                token=refresh_token,
+                expired_at__gt=timezone.now()
+            ).first()
+
+            if not token_obj:
+                return Response({'error': 'Invalid or expired refresh token'}, status=401)
+
+        except User.DoesNotExist:
+            return Response({'error': 'User not found'}, status=404)
+        except Exception as e:
+            return Response({'error': f'Invalid token: {str(e)}'}, status=401)
+
+        # Invalidate the old token
+        token_obj.delete()
+
+        # Generate new tokens
+        new_access_token = create_access_token(user.id)
+        new_refresh_token = create_refresh_token(user.id)
+
+        # Save new refresh token
+        UserToken.objects.create(
+            user=user,
+            token=new_refresh_token,
+            expired_at=timezone.now() + timedelta(days=7)
+        )
+
+        response = Response({
+            'user': UserSerializer(user).data,
+            'access_token': new_access_token,
+            'refresh_token': new_refresh_token
+        })
+        response.set_cookie(key='refresh_token', value=new_refresh_token, httponly=True)
+        return response
+    
 # Service Provider List View with filters for category and location
 class ServiceProviderListView(APIView):
     permission_classes = [permissions.AllowAny]
