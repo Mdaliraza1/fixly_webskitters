@@ -16,8 +16,8 @@ class UserSerializer(serializers.ModelSerializer):
 
 # Customer Registration Serializer
 class CustomerRegistrationSerializer(serializers.ModelSerializer):
-    username = serializers.CharField(required=False)
-    
+    confirm_password = serializers.CharField(write_only=True)  # This is only for validation
+
     class Meta:
         model = User
         fields = ['email', 'username', 'first_name', 'last_name', 'password', 'confirm_password',
@@ -32,7 +32,7 @@ class CustomerRegistrationSerializer(serializers.ModelSerializer):
         return value
 
     def validate_contact(self, value):
-        if not re.match(contact_regex.regex, value):
+        if not re.match(contact_regex, value):
             raise serializers.ValidationError("Enter valid 10 digit mobile number")
         return value
 
@@ -66,18 +66,19 @@ class CustomerRegistrationSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         password = validated_data.pop('password', None)
-        confirm_password = validated_data.pop('confirm_password', None)
-        # Set username to be the same as email
+        # Set username to be the same as email if not provided
+        if not validated_data.get('username'):
+            validated_data['username'] = validated_data['email']
+        
         instance = self.Meta.model(**validated_data)
         if password is not None:
             instance.set_password(password)
         instance.save()
         return instance
 
-
 # Service Provider Registration Serializer
 class ServiceProviderRegistrationSerializer(serializers.ModelSerializer):
-    username = serializers.CharField(required=False)
+    confirm_password = serializers.CharField(write_only=True)  # This is only for validation
 
     class Meta:
         model = User
@@ -110,7 +111,10 @@ class ServiceProviderRegistrationSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         password = validated_data.pop('password', None)
-        confirm_password = validated_data.pop('confirm_password', None)
+        # Set username to be the same as email if not provided
+        if not validated_data.get('username'):
+            validated_data['username'] = validated_data['email']
+
         instance = self.Meta.model(**validated_data)
         if password is not None:
             instance.set_password(password)
