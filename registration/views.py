@@ -136,6 +136,7 @@ class LoginAPIView(APIView):
             'refresh_token': refresh_token
         }
         return response
+    
 class RefreshAPIView(APIView):
     def post(self, request: Request):
         refresh_token = request.data.get('refresh_token') or request.COOKIES.get('refresh_token')

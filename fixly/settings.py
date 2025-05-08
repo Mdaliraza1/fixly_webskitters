@@ -108,7 +108,7 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
     'DEFAULT_PERMISSION_CLASSES': (
-        'rest_framework.permissions.IsAuthenticated',
+        'rest_framework.permissions.AllowAny',
     ),
 }
 
@@ -121,9 +121,3 @@ AUTH_USER_MODEL = 'registration.User'
 CORS_ALLOW_ALL_ORIGINS = True       # Any frontend application running on any port can make requests
 CORS_ALLOW_CREDENTIALS = True       # Frontend will get cookies
 
-# REST FRAMEWORK
-REST_FRAMEWORK = {
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.AllowAny'
-    ]
-}
