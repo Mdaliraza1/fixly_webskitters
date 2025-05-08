@@ -6,6 +6,7 @@ from .models import User
 contact_regex = r'^[1-9]\d{9}$'
 email_regex = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
 
+# User Serializer
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -20,8 +21,7 @@ class CustomerRegistrationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['email', 'first_name', 'last_name', 'password', 'confirm_password',
-                  'contact', 'gender']
+        fields = ['email', 'first_name', 'last_name', 'password', 'confirm_password', 'contact', 'gender']
         extra_kwargs = {
             'username': {'required': False}  # Make username optional
         }
@@ -76,6 +76,7 @@ class CustomerRegistrationSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
+
 # Service Provider Registration Serializer
 class ServiceProviderRegistrationSerializer(serializers.ModelSerializer):
     confirm_password = serializers.CharField(write_only=True)  # This is only for validation
@@ -110,6 +111,9 @@ class ServiceProviderRegistrationSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data):
+        # Remove confirm_password before saving
+        validated_data.pop('confirm_password', None)  # Remove confirm_password from validated data
+
         password = validated_data.pop('password', None)
         # Set username to be the same as email if not provided
         if not validated_data.get('username'):
@@ -121,25 +125,21 @@ class ServiceProviderRegistrationSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
+
 # User Update Serializer (for Customer)
 class UserUpdateSerializer(serializers.ModelSerializer):
     contact = serializers.CharField(validators=[contact_regex])
-    
+
     class Meta:
         model = User
-        fields = ['username', 'first_name', 'last_name', 'contact', 'gender']
+        fields = ['username', 'first_name', 'last_name', 'contact', 'gender', 'location', 'category']
 
     def validate(self, data):
+        # Ensure 'category' is provided for service providers
+        if 'category' not in data and hasattr(self.instance, 'user_type') and self.instance.user_type == 'SERVICE_PROVIDER':
+            raise serializers.ValidationError("Category is required for service providers.")
         return data
 
-    def update(self, instance, validated_data):
-        # Set username to None explicitly during update
-        validated_data['username'] = None
-
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-        instance.save()
-        return instance
 
 # Service Provider Update Serializer (for Service Providers)
 class ServiceProviderUpdateSerializer(serializers.ModelSerializer):
@@ -152,15 +152,7 @@ class ServiceProviderUpdateSerializer(serializers.ModelSerializer):
         fields = ['first_name', 'last_name', 'contact', 'gender', 'location', 'category']
 
     def validate(self, data):
-        if not data.get('category') and self.instance.user_type == 'SERVICE_PROVIDER':
+        # Ensure 'category' is provided for service providers
+        if not data.get('category') and hasattr(self.instance, 'user_type') and self.instance.user_type == 'SERVICE_PROVIDER':
             raise serializers.ValidationError("Category is required for service providers.")
         return data
-
-    def update(self, instance, validated_data):
-        # Set username to None explicitly during update
-        validated_data['username'] = None
-
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-        instance.save()
-        return instance
