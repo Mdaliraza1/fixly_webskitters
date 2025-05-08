@@ -205,18 +205,6 @@ class ServiceProviderListView(APIView):
         queryset = User.objects.filter(user_type='SERVICE_PROVIDER')
         category = request.query_params.get('category')
         location = request.query_params.get('location')
-
-        # Validate category and location
-        if category:
-            if not ServiceCategory.objects.filter(name=category).exists():
-                return Response({'error': 'Invalid category'}, status=400)
-            queryset = queryset.filter(category=category)
-
-        if location:
-            if not Location.objects.filter(name=location).exists():
-                return Response({'error': 'Invalid location'}, status=400)
-            queryset = queryset.filter(location=location)
-
         serializer = UserSerializer(queryset, many=True)
         return Response(serializer.data)
 

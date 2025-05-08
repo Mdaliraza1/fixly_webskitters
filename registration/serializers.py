@@ -1,10 +1,9 @@
 import re
 from rest_framework import serializers
 from .models import User
-from rest_framework.validators import RegexValidator
 
 # Regex Validators
-contact_regex = RegexValidator(regex=r'^[1-9]\d{9}$', message="Enter a valid 10 digit mobile number")
+contact_regex = r'^[1-9]\d{9}$'
 email_regex = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
 
 class UserSerializer(serializers.ModelSerializer):

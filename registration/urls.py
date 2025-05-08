@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import (CustomerRegistrationView, ServiceProviderRegistrationView,RefreshAPIView, UserAPIView, UserDetailView, UserUpdateView, ServiceProviderListView,ProviderUpdateView, LoginAPIView,LogoutAPIView)
+from .views import CustomerRegistrationView, ServiceProviderRegistrationView,RefreshAPIView, UserAPIView, UserDetailView, UserUpdateView, ServiceProviderListView,ProviderUpdateView, LoginAPIView,LogoutAPIView
 
 urlpatterns = [
     path('register/customer/', CustomerRegistrationView.as_view(), name='register_customer'),
