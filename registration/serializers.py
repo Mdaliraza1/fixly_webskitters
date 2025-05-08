@@ -20,7 +20,7 @@ class CustomerRegistrationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['email', 'username', 'first_name', 'last_name', 'password', 'confirm_password',
+        fields = ['email', 'first_name', 'last_name', 'password', 'confirm_password',
                   'contact', 'gender']
         extra_kwargs = {
             'username': {'required': False}  # Make username optional
@@ -82,7 +82,7 @@ class ServiceProviderRegistrationSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['email', 'username', 'first_name', 'last_name', 'password', 'confirm_password',
+        fields = ['email', 'first_name', 'last_name', 'password', 'confirm_password',
                   'contact', 'gender', 'location', 'category']
 
     def validate_email(self, value):
@@ -132,6 +132,15 @@ class UserUpdateSerializer(serializers.ModelSerializer):
     def validate(self, data):
         return data
 
+    def update(self, instance, validated_data):
+        # Set username to None explicitly during update
+        validated_data['username'] = None
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return instance
+
 # Service Provider Update Serializer (for Service Providers)
 class ServiceProviderUpdateSerializer(serializers.ModelSerializer):
     contact = serializers.CharField(validators=[contact_regex])
@@ -146,3 +155,12 @@ class ServiceProviderUpdateSerializer(serializers.ModelSerializer):
         if not data.get('category') and self.instance.user_type == 'SERVICE_PROVIDER':
             raise serializers.ValidationError("Category is required for service providers.")
         return data
+
+    def update(self, instance, validated_data):
+        # Set username to None explicitly during update
+        validated_data['username'] = None
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return instance
