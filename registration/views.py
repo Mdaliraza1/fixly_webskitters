@@ -1,4 +1,6 @@
-from rest_framework import permissions, status
+from rest_framework import permissions, status, exceptions
+from django.utils import timezone
+from datetime import timedelta,timezone
 from rest_framework.response import Response
 from rest_framework.request import Request
 from rest_framework.views import APIView
@@ -11,6 +13,11 @@ from .serializers import (
 )
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
+
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+
+from .authentication import JWTAuthentication, create_access_token, create_refresh_token, decode_refresh_token
 
 # Customer Registration View
 class CustomerRegistrationView(APIView):
@@ -42,8 +49,6 @@ class ServiceProviderRegistrationView(APIView):
 
 # User List View
 class UserListView(APIView):
-    permission_classes = [permissions.AllowAny]
-
     def get(self, request):
         """
         Retrieves a list of all users.
@@ -54,7 +59,6 @@ class UserListView(APIView):
 
 # User Detail View
 class UserDetailView(APIView):
-    permission_classes = [permissions.AllowAny]
     
     def get(self, request, id):
         """
@@ -72,8 +76,6 @@ class UserDetailView(APIView):
 
 # User Update View
 class UserUpdateView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
-
     def put(self, request, id):
         """
         Allows the authenticated user to update their details. 
@@ -93,15 +95,16 @@ class UserUpdateView(APIView):
 
 # Password Change View
 class PasswordChangeView(APIView):
-    permission_classes = [permissions.IsAuthenticated]
-
     def post(self, request):
         """
         Allows a user to change their password.
         """
-        serializer = PasswordChangeSerializer(data=request.data)
-        if serializer.is_valid():
-            user = request.user
+    
+        user = User.objects.get(id=id)
+        if request.user.is_staff or request.user == user:
+            serializer = PasswordChangeSerializer(data=request.data)
+            if serializer.is_valid():
+                user = request.user
             if not user.check_password(serializer.validated_data['current_password']):
                 return Response({"error": "Wrong current password."}, status=status.HTTP_400_BAD_REQUEST)
             user.set_password(serializer.validated_data['new_password'])
@@ -110,26 +113,34 @@ class PasswordChangeView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 # Login View with JWT
-class LoginView(APIView):
-    permission_classes = [permissions.AllowAny]
+class LoginAPIView(APIView):
+    def post(self, request: Request):
+        email = request.data['email']
+        password = request.data['password']
+        user = User.objects.filter(email=email).first()
+        if user is None:
+            raise exceptions.AuthenticationFailed('Invalid credentials')
 
-    def post(self, request):
-        """
-        Handles user login and returns JWT tokens.
-        """
-        serializer = LoginSerializer(data=request.data)
-        if serializer.is_valid():
-            email = serializer.validated_data['email']
-            password = serializer.validated_data['password']
-            user = authenticate(request, email=email, password=password)
-            if user:
-                refresh = RefreshToken.for_user(user)
-                return Response({
-                    'access': str(refresh.access_token),
-                    'refresh': str(refresh),
-                })
-            return Response({"error": "Invalid credentials"}, status=status.HTTP_400_BAD_REQUEST)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        if not user.check_password(password):
+            raise exceptions.AuthenticationFailed('Invalid credentials')
+        
+        access_token = create_access_token(user.id)
+        refresh_token = create_refresh_token(user.id)
+
+        # here we are storing the refresh token of a specific user with an expiration date of 7 days
+        UserToken.objects.create(
+            user=user, 
+            token=refresh_token, 
+            expired_at = timezone.now() + timedelta(days=7)
+        )
+
+        response = Response()
+        response.set_cookie(key='refresh_token', value=refresh_token, httponly=True)
+        response.data = {
+            'access_token': access_token,
+            'refresh_token': refresh_token
+        }
+        return response
 
 # Service Provider List View with filters for category and location
 class ServiceProviderListView(APIView):
