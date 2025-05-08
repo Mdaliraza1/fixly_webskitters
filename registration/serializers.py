@@ -1,5 +1,6 @@
 import re
 from rest_framework import serializers
+from rest_framework.serializers import ModelSerializer
 from .models import User
 
 # Regex Validators
@@ -9,13 +10,16 @@ password_regex = r'^(?=.*[A-Z])(?=.*[0-9])(?=.*[^a-zA-Z0-9\s]).{8,}$'
 
 
 # User Serializer
-class UserSerializer(serializers.ModelSerializer):
+class UserSerializer(ModelSerializer):
     class Meta:
         model = User
-        fields = '__all__'
-        extra_kwargs = {        
+        fields = ['id', 'first_name', 'last_name', 'email', 'password']
+        
+        extra_kwargs = {        # This allows the password field to be included in requests but excluded from responses.
+            'username': {'required': False},
             'password': {'write_only': True}
         }
+    
 
 # Customer Registration Serializer
 class CustomerRegistrationSerializer(serializers.ModelSerializer):
