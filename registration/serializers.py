@@ -20,7 +20,20 @@ class UserSerializer(ModelSerializer):
             'password': {'write_only': True}
         }
     
+class ProviderSerializer(ModelSerializer):
+    class Meta:
+        model = User
+        fields = [
+            'id', 'email', 'first_name', 'last_name',
+            'contact', 'gender', 'location', 'category'
+        ]
 
+    def get_location(self, obj):
+        return obj.get_location_display() if obj.location else None
+
+    def get_category(self, obj):
+        return obj.category.name if obj.category else None
+    
 # Customer Registration Serializer
 class CustomerRegistrationSerializer(serializers.ModelSerializer):
     confirm_password = serializers.CharField(write_only=True)  # This is only for validation

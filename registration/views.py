@@ -10,7 +10,7 @@ from django.utils.decorators import method_decorator
 from .models import User, UserToken
 from .serializers import (
     CustomerRegistrationSerializer, ServiceProviderRegistrationSerializer,
-    UserUpdateSerializer, ServiceProviderUpdateSerializer, UserSerializer
+    UserUpdateSerializer, ServiceProviderUpdateSerializer, UserSerializer,ProviderSerializer
 )
 from .authentication import JWTAuthentication, create_access_token, create_refresh_token, decode_refresh_token
 
@@ -193,7 +193,7 @@ class ServiceProviderListView(APIView):
         if location:
             queryset = queryset.filter(location=location)
 
-        serializer = UserSerializer(queryset, many=True)
+        serializer = ProviderSerializer(queryset, many=True)
         return Response(serializer.data)
 
 
