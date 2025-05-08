@@ -64,11 +64,12 @@ class CustomerRegistrationSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data):
+        # Remove confirm_password before saving
+        validated_data.pop('confirm_password', None)  # Remove confirm_password from validated data
         password = validated_data.pop('password', None)
         # Set username to be the same as email if not provided
         if not validated_data.get('username'):
             validated_data['username'] = validated_data['email']
-        
         instance = self.Meta.model(**validated_data)
         if password is not None:
             instance.set_password(password)
