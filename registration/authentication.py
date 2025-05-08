@@ -23,7 +23,7 @@ class JWTAuthentication(BaseAuthentication):
             raise AuthenticationFailed('Invalid token encoding')
 
         try:
-            user_id = decode_access_token(token)
+            user_id = self.decode_access_token(token)
             user = User.objects.get(pk=user_id)
         except User.DoesNotExist:
             raise AuthenticationFailed('User not found')

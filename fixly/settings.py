@@ -112,18 +112,18 @@ REST_FRAMEWORK = {
     ),
 }
 
-SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(seconds=30),  # Typical access token duration
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
-    'AUTH_HEADER_TYPES': ('Bearer',),
-}
+
 
 # User model configuration
 AUTH_USER_MODEL = 'registration.User'
 
-# CORS settings
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:8000",  # Allow your frontend (if any)
-    "http://yourfrontenddomain.com",
-]
-CORS_ALLOW_CREDENTIALS = True
+# CORS
+CORS_ALLOW_ALL_ORIGINS = True       # Any frontend application running on any port can make requests
+CORS_ALLOW_CREDENTIALS = True       # Frontend will get cookies
+
+# REST FRAMEWORK
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.AllowAny'
+    ]
+}

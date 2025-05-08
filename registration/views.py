@@ -1,13 +1,16 @@
 from rest_framework import permissions, status
 from rest_framework.response import Response
+from rest_framework.request import Request
 from rest_framework.views import APIView
 from django.contrib.auth import authenticate
 from rest_framework_simplejwt.tokens import RefreshToken
-from .models import User
+from .models import User,UserToken
 from .serializers import (
     CustomerRegistrationSerializer, ServiceProviderRegistrationSerializer,
     UserUpdateSerializer, PasswordChangeSerializer, LoginSerializer, UserSerializer
 )
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
 
 # Customer Registration View
 class CustomerRegistrationView(APIView):
@@ -147,3 +150,22 @@ class ServiceProviderListView(APIView):
 
         serializer = UserSerializer(queryset, many=True)
         return Response(serializer.data)
+    
+@method_decorator(csrf_exempt, name='dispatch')
+class LogoutAPIView(APIView):
+
+    def post(self, request: Request):
+        refresh_token = request.data.get('refresh_token') or request.COOKIES.get('refresh_token')
+
+        if not refresh_token:
+            return Response({'detail': 'Refresh token missing'}, status=400)
+
+        UserToken.objects.filter(token=refresh_token).delete()
+
+        response: Response = Response({
+            'status': 'success',
+            'message': 'Logged out successfully'
+        }, status=200)
+
+        response.delete_cookie(key='refresh_token')
+        return response
