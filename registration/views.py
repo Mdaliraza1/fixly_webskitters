@@ -49,28 +49,53 @@ class ServiceProviderRegistrationView(APIView):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
-# User List View
+# User profile View
 class UserAPIView(APIView):
-    authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
+    def post(self, request: Request):
+        refresh_token = request.data.get('refresh_token') or request.COOKIES.get('refresh_token')
 
-    def get(self, request):
-        user = request.user
-        serializer = UserSerializer(user)
-        return Response({'user': serializer.data, 'is_admin': user.is_superuser})
+        if not refresh_token:
+            return Response({'error': 'Refresh token not provided'}, status=400)
 
+        try:
+            user_id = decode_refresh_token(refresh_token)
+            user = User.objects.get(pk=user_id)
 
-# User Detail View
-class UserDetailView(APIView):
-    authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
+            token_obj = UserToken.objects.filter(
+                user=user,
+                token=refresh_token,
+                expired_at__gt=timezone.now()
+            ).first()
 
-    def get(self, request, *args, **kwargs):
-        user = request.user
-        # Debugging check: Confirm user object is valid
-        print(f"User details: {user}")
-        serializer = UserSerializer(user)
-        return Response(serializer.data)
+            if not token_obj:
+                return Response({'error': 'Invalid or expired refresh token'}, status=401)
+
+        except User.DoesNotExist:
+            return Response({'error': 'User not found'}, status=404)
+        except Exception as e:
+            return Response({'error': f'Invalid token: {str(e)}'}, status=401)
+
+        # Invalidate the old token
+        token_obj.delete()
+
+        # Generate new tokens
+        new_access_token = create_access_token(user.id)
+        new_refresh_token = create_refresh_token(user.id)
+
+        # Save new refresh token
+        UserToken.objects.create(
+            user=user,
+            token=new_refresh_token,
+            expired_at=timezone.now() + timedelta(days=7)
+        )
+
+        response = Response({
+            'user': UserSerializer(user).data,
+            'access_token': new_access_token,
+            'refresh_token': new_refresh_token
+        })
+        response.set_cookie(key='refresh_token', value=new_refresh_token, httponly=True)
+        return response
 
 
 # User Update View
@@ -121,7 +146,7 @@ class LoginAPIView(APIView):
 
         UserToken.objects.create(user=user, token=refresh_token, expired_at=timezone.now() + timedelta(days=7))
 
-        response = Response({'access_token': access_token, 'refresh_token': refresh_token}, status=200)
+        response = Response({'message':'Successfully logged in!!','access_token': access_token, 'refresh_token': refresh_token}, status=200)
         response.set_cookie(key='refresh_token', value=refresh_token, httponly=True, secure=True)
         return response
 
