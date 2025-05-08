@@ -41,7 +41,7 @@ class CustomerRegistrationSerializer(serializers.ModelSerializer):
 
     def validate_password(self, value):
         if not re.match(password_regex, value):
-            raise serializers.ValidationError("Password length should be 8 and contist of UPPERCASE, lowercase, number and Symbol")
+            raise serializers.ValidationError("Password length should be 8 and contain UPPERCASE, lowercase, number, and Symbol")
         return value
 
     def validate(self, data):
@@ -67,14 +67,20 @@ class CustomerRegistrationSerializer(serializers.ModelSerializer):
         # Remove confirm_password before saving
         validated_data.pop('confirm_password', None)  # Remove confirm_password from validated data
         password = validated_data.pop('password', None)
+        
         # Set username to be the same as email if not provided
         if not validated_data.get('username'):
             validated_data['username'] = validated_data['email']
+        
+        # Set the user_type to 'USER' by default
+        validated_data['user_type'] = 'USER'
+
         instance = self.Meta.model(**validated_data)
         if password is not None:
             instance.set_password(password)
         instance.save()
         return instance
+
 
 
 # Service Provider Registration Serializer
@@ -102,7 +108,7 @@ class ServiceProviderRegistrationSerializer(serializers.ModelSerializer):
 
     def validate_password(self, value):
         if not re.match(password_regex, value):
-            raise serializers.ValidationError("Password length should be 8 and contist of UPPERCASE, lowercase, number and Symbol")
+            raise serializers.ValidationError("Password length should be 8 and contain UPPERCASE, lowercase, number, and Symbol")
         return value
 
     def validate(self, data):
@@ -129,15 +135,20 @@ class ServiceProviderRegistrationSerializer(serializers.ModelSerializer):
         validated_data.pop('confirm_password', None)  # Remove confirm_password from validated data
 
         password = validated_data.pop('password', None)
+        
         # Set username to be the same as email if not provided
         if not validated_data.get('username'):
             validated_data['username'] = validated_data['email']
+
+        # Set the user_type to 'SERVICE_PROVIDER' by default
+        validated_data['user_type'] = 'SERVICE_PROVIDER'
 
         instance = self.Meta.model(**validated_data)
         if password is not None:
             instance.set_password(password)
         instance.save()
         return instance
+
 
 
 # User Update Serializer (for Customer)
