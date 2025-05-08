@@ -103,16 +103,19 @@ class CustomerRegistrationSerializer(serializers.ModelSerializer):
 # Service Provider Registration Serializer
 class ServiceProviderRegistrationSerializer(serializers.ModelSerializer):
     confirm_password = serializers.CharField(write_only=True)  # This is only for validation
+    category_name = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = User
         fields = ['email', 'first_name', 'last_name', 'password', 'confirm_password',
-                  'contact', 'gender', 'location', 'category']
+                  'contact', 'gender', 'location', 'category','category_name']
         extra_kwargs = {
             'username': {'required': False},
             'password': {'write_only': True}  # Ensuring password is not included in the response
         }
-
+    def get_category_name(self, obj):
+        return obj.category.category if obj.category else None
+    
     def validate_email(self, value):
         if not re.match(email_regex, value):
             raise serializers.ValidationError("Invalid email address")

@@ -14,7 +14,7 @@ class User(AbstractUser):
     contact = models.CharField(max_length=15, unique=True)
     gender = models.CharField(max_length=10)
     location = models.CharField(max_length=100, blank=True, null=True)
-    category = models.CharField(max_length=50, null=True, blank=True)  # Only for service providers
+    category = models.ForeignKey(Service, on_delete=models.CASCADE, null=True, blank=True, related_name='SERVICE_PROVIDER')  # Only for service providers
     user_type = models.CharField(max_length=20, choices=USER_TYPE_CHOICES)
 
     USERNAME_FIELD = 'email'  # Email is used for authentication
