@@ -1,6 +1,6 @@
 import re
 from rest_framework import serializers
-from .models import User
+from .models import User,Service
 
 # Regex Validators
 contact_regex = r'^[1-9]\d{9}$'
@@ -86,6 +86,7 @@ class CustomerRegistrationSerializer(serializers.ModelSerializer):
 # Service Provider Registration Serializer
 class ServiceProviderRegistrationSerializer(serializers.ModelSerializer):
     confirm_password = serializers.CharField(write_only=True)  # This is only for validation
+    category = serializers.PrimaryKeyRelatedField(queryset=Service.objects.all())  # ForeignKey to Service model
 
     class Meta:
         model = User
@@ -170,7 +171,7 @@ class UserUpdateSerializer(serializers.ModelSerializer):
 class ServiceProviderUpdateSerializer(serializers.ModelSerializer):
     contact = serializers.CharField(validators=[contact_regex])
     location = serializers.CharField(required=False, allow_blank=True)
-    category = serializers.CharField(required=False, allow_blank=True)
+    category = serializers.PrimaryKeyRelatedField(queryset=Service.objects.all())  # ForeignKey to Service model
 
     class Meta:
         model = User
