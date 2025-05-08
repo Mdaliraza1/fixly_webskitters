@@ -121,3 +121,7 @@ AUTH_USER_MODEL = 'registration.User'
 CORS_ALLOW_ALL_ORIGINS = True       # Any frontend application running on any port can make requests
 CORS_ALLOW_CREDENTIALS = True       # Frontend will get cookies
 
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://fixlywebskitters-production-0aa0.up.railway.app',  # Add your domain here
+]
