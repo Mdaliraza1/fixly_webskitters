@@ -23,7 +23,8 @@ class CustomerRegistrationSerializer(serializers.ModelSerializer):
         model = User
         fields = ['email', 'first_name', 'last_name', 'password', 'confirm_password', 'contact', 'gender']
         extra_kwargs = {
-            'username': {'required': False}  # Make username optional
+            'username': {'required': False},
+            'password': {'write_only': True}  # Ensuring password is not included in the response
         }
 
     def validate_email(self, value):
@@ -85,6 +86,10 @@ class ServiceProviderRegistrationSerializer(serializers.ModelSerializer):
         model = User
         fields = ['email', 'first_name', 'last_name', 'password', 'confirm_password',
                   'contact', 'gender', 'location', 'category']
+        extra_kwargs = {
+            'username': {'required': False},
+            'password': {'write_only': True}  # Ensuring password is not included in the response
+        }
 
     def validate_email(self, value):
         if not re.match(email_regex, value):
