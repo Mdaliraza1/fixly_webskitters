@@ -52,6 +52,12 @@ class CustomerRegistrationSerializer(serializers.ModelSerializer):
         validated_data['username'] = validated_data['email']
         user = User.objects.create_user(**validated_data, user_type='CUSTOMER')
         return user
+    
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = '__all__'
 
 # Service Provider Registration Serializer
 class ServiceProviderRegistrationSerializer(serializers.ModelSerializer):
