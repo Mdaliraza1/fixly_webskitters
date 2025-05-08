@@ -1,3 +1,4 @@
+import re
 from rest_framework import serializers
 from django.core.validators import RegexValidator
 from django.contrib.auth.password_validation import validate_password
@@ -89,19 +90,35 @@ class ServiceProviderRegistrationSerializer(serializers.ModelSerializer):
         user = User.objects.create_user(**validated_data, user_type='SERVICE_PROVIDER')
         return user
 
-# User Serializer (added this for consistency in user-related views)
-class UserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ['id', 'email', 'username', 'first_name', 'last_name', 'contact', 'gender', 'location', 'category', 'user_type']
-
-# User Update Serializer
+# User Update Serializer (for Customer)
 class UserUpdateSerializer(serializers.ModelSerializer):
     contact = serializers.CharField(validators=[contact_regex])
 
     class Meta:
         model = User
-        fields = ['username', 'first_name', 'last_name', 'contact', 'gender', 'location', 'category']
+        fields = ['username', 'first_name', 'last_name', 'contact', 'gender']
+
+    def validate(self, data):
+        return data
+
+
+# Service Provider Update Serializer (for Service Providers)
+class ServiceProviderUpdateSerializer(serializers.ModelSerializer):
+    contact = serializers.CharField(validators=[contact_regex])
+    location = serializers.CharField(required=False, allow_blank=True)
+    category = serializers.CharField(required=False, allow_blank=True)
+
+    class Meta:
+        model = User
+        fields = ['first_name', 'last_name', 'contact', 'gender', 'location', 'category']
+
+    def validate(self, data):
+        # Custom validation logic for service provider updates (if necessary)
+        # Example: Ensure category is required for service providers
+        if not data.get('category') and self.instance.user_type == 'SERVICE_PROVIDER':
+            raise serializers.ValidationError("Category is required for service providers.")
+        return data
+
 
 # Password Change Serializer
 class PasswordChangeSerializer(serializers.Serializer):

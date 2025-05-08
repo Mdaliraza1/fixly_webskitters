@@ -7,15 +7,27 @@ class User(AbstractUser):
         ('SERVICE_PROVIDER', 'Service Provider'),
     )
 
-    user_type = models.CharField(max_length=20, choices=USER_TYPE_CHOICES)
+    first_name = models.CharField(max_length=255)
+    last_name = models.CharField(max_length=255)
+    email = models.EmailField(unique=True)
     contact = models.CharField(max_length=15, unique=True)
     gender = models.CharField(max_length=10)
-    location = models.CharField(max_length=100,blank=True,null=True)
-    category = models.CharField(max_length=50, blank=True, null=True)  # Used only by SERVICE_PROVIDER
-    email = models.EmailField(unique=True)
+    location = models.CharField(max_length=100, blank=True, null=True)
+    category = models.CharField(max_length=50, blank=True, null=True)  # Only for service providers
+    user_type = models.CharField(max_length=20, choices=USER_TYPE_CHOICES)
 
-    REQUIRED_FIELDS = ['username', 'contact']
-    USERNAME_FIELD = 'email'
+    USERNAME_FIELD = 'email'  # Email is used for authentication
+    REQUIRED_FIELDS = ['username', 'first_name', 'last_name']  # Needed when creating superuser
 
     def __str__(self):
         return self.email
+
+
+class UserToken(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='tokens')
+    token = models.CharField(max_length=255, unique=True)           # Typically a refresh token
+    created_at = models.DateTimeField(auto_now_add=True)
+    expired_at = models.DateTimeField()
+
+    def __str__(self):
+        return f"Token for {self.user.email} (Expires: {self.expired_at})"
