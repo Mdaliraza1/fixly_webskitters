@@ -1,10 +1,11 @@
 import re
 from rest_framework import serializers
 from .models import User
+from rest_framework.validators import RegexValidator
 
 # Regex Validators
-contact_regex =r'^[1-9]\d{9}$'
-email_regex =r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
+contact_regex = RegexValidator(regex=r'^[1-9]\d{9}$', message="Enter a valid 10 digit mobile number")
+email_regex = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -13,9 +14,11 @@ class UserSerializer(serializers.ModelSerializer):
         extra_kwargs = {        
             'password': {'write_only': True}
         }
+
 # Customer Registration Serializer
 class CustomerRegistrationSerializer(serializers.ModelSerializer):
     username = serializers.CharField(required=False)
+    
     class Meta:
         model = User
         fields = ['email', 'username', 'first_name', 'last_name', 'password', 'confirm_password',
@@ -23,14 +26,17 @@ class CustomerRegistrationSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             'username': {'required': False}  # Make username optional
         }
+
     def validate_email(self, value):
-        if not re.match(email_regex,value):
+        if not re.match(email_regex, value):
             raise serializers.ValidationError("Invalid email address")
         return value
+
     def validate_contact(self, value):
-        if not re.match(contact_regex,value):
+        if not re.match(contact_regex.regex, value):
             raise serializers.ValidationError("Enter valid 10 digit mobile number")
         return value
+
     def validate_password(self, value):
         if len(value) < 8:
             raise serializers.ValidationError("Password must be at least 8 characters long.")
@@ -39,11 +45,12 @@ class CustomerRegistrationSerializer(serializers.ModelSerializer):
         if not re.search(r'[0-9]', value):
             raise serializers.ValidationError("Password must contain at least one digit.")
         return value
+
     def validate(self, data):
         # Check if passwords match
         if data['password'] != data['confirm_password']:
             raise serializers.ValidationError("Passwords do not match.")
-
+        
         # Check if the email already exists
         if User.objects.filter(email=data['email']).exists():
             raise serializers.ValidationError("A user with this email already exists.")
@@ -51,53 +58,61 @@ class CustomerRegistrationSerializer(serializers.ModelSerializer):
         # Check if the contact already exists
         if User.objects.filter(contact=data['contact']).exists():
             raise serializers.ValidationError("A user with this contact number already exists.")
-    def validate(self, data):
+        
+        # Check if first_name and last_name are the same
         if data['first_name'].lower() == data['last_name'].lower():
             raise serializers.ValidationError("First name and last name cannot be the same.")
+        
         return data
 
     def create(self, validated_data):
-        password=validated_data.pop('password',None)
-        confirm_password=validated_data.pop('confirm_password',None)
+        password = validated_data.pop('password', None)
+        confirm_password = validated_data.pop('confirm_password', None)
         # Set username to be the same as email
-        instance=self.Meta.model(**validated_data)
+        instance = self.Meta.model(**validated_data)
         if password is not None:
             instance.set_password(password)
         instance.save()
         return instance
-    
+
 
 # Service Provider Registration Serializer
 class ServiceProviderRegistrationSerializer(serializers.ModelSerializer):
     username = serializers.CharField(required=False)
+
     class Meta:
         model = User
         fields = ['email', 'username', 'first_name', 'last_name', 'password', 'confirm_password',
                   'contact', 'gender', 'location', 'category']
+
     def validate_email(self, value):
-        if not re.match(email_regex,value):
+        if not re.match(email_regex, value):
             raise serializers.ValidationError("Only '@example.com' emails are allowed.")
         return value
+
     def validate(self, data):
         # Check if passwords match
         if data['password'] != data['confirm_password']:
             raise serializers.ValidationError("Passwords do not match.")
-
+        
         # Check if the email already exists
         if User.objects.filter(email=data['email']).exists():
             raise serializers.ValidationError("A user with this email already exists.")
-
+        
         # Check if the contact already exists
         if User.objects.filter(contact=data['contact']).exists():
             raise serializers.ValidationError("A user with this contact number already exists.")
+        
+        # Check if first_name and last_name are the same
         if data['first_name'].lower() == data['last_name'].lower():
             raise serializers.ValidationError("First name and last name cannot be the same.")
+        
         return data
 
     def create(self, validated_data):
-        password=validated_data.pop('password',None)
-        confirm_password=validated_data.pop('confirm_password',None)
-        instance=self.Meta.model(**validated_data)
+        password = validated_data.pop('password', None)
+        confirm_password = validated_data.pop('confirm_password', None)
+        instance = self.Meta.model(**validated_data)
         if password is not None:
             instance.set_password(password)
         instance.save()
@@ -106,6 +121,7 @@ class ServiceProviderRegistrationSerializer(serializers.ModelSerializer):
 # User Update Serializer (for Customer)
 class UserUpdateSerializer(serializers.ModelSerializer):
     contact = serializers.CharField(validators=[contact_regex])
+    
     class Meta:
         model = User
         fields = ['username', 'first_name', 'last_name', 'contact', 'gender']

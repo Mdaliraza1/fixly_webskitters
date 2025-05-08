@@ -1,18 +1,19 @@
 import jwt
 from datetime import datetime, timedelta, timezone
 from rest_framework import exceptions
-from rest_framework.authentication import BaseAuthentication,get_authorization_header
+from rest_framework.authentication import BaseAuthentication, get_authorization_header
 from rest_framework.exceptions import AuthenticationFailed
 from registration.models import User
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
-  # Return the user and any extra data
+
+# JWT Authentication Class
 class JWTAuthentication(BaseAuthentication):
     def authenticate(self, request):
         auth_header = get_authorization_header(request).split()
-        
+
         if len(auth_header) != 2:
             raise AuthenticationFailed('Authorization header is malformed')
 
@@ -29,43 +30,52 @@ class JWTAuthentication(BaseAuthentication):
             raise AuthenticationFailed('User not found')
         except Exception as e:
             raise AuthenticationFailed(f'Token validation error: {str(e)}')
-        return (user, {'is_admin': user.is_superuser}) 
 
-# Token Creation Functions (You can keep them as utility functions outside of the class)
+        return (user, {'is_admin': user.is_superuser})
 
-def create_access_token(user_id):
-    payload = {
-        'user_id': user_id,
-        'iat': datetime.now(timezone.utc),
-        'exp': datetime.now(timezone.utc) + timedelta(seconds=30),  # Access token expiration (1 hour)
-    }
-    secret_key = os.getenv('JWT_SECRET_KEY', 'default_secret')
-    return jwt.encode(payload, secret_key, algorithm="HS256")
-def decode_access_token(self, token):
-    try:
+    # Access Token Creation
+    def create_access_token(self, user_id):
+        payload = {
+            'user_id': user_id,
+            'iat': datetime.now(timezone.utc),
+            'exp': datetime.now(timezone.utc) + timedelta(seconds=30),  
+        }
         secret_key = os.getenv('JWT_SECRET_KEY', 'default_secret')
-        payload = jwt.decode(token, secret_key, algorithms=['HS256'])
-        return payload['user_id']
-    except jwt.ExpiredSignatureError:
-        raise AuthenticationFailed('Token has expired')
-    except jwt.InvalidTokenError:
-        raise AuthenticationFailed('Invalid token')
-    except Exception as e:
-        raise AuthenticationFailed(f'{str(e)}')
-    
-def create_refresh_token(user_id):
-    payload = {
-        'user_id': user_id,
-        'exp': datetime.now(timezone.utc) + timedelta(days=7),  # Refresh token expiration (7 days)
-        'iat': datetime.now(timezone.utc)
-    }
-    secret_key = os.getenv('JWT_REFRESH_SECRET_KEY', 'default_secret')
-    return jwt.encode(payload, secret_key, algorithm="HS256")
-def decode_refresh_token(token):
-    try:
-        refresh_secret = os.getenv('JWT_REFRESH_SECRET_KEY', 'default_secret') 
-        payload = jwt.decode(token, refresh_secret, algorithms='HS256')
-        print(f'payload: {payload}')
-        return payload['user_id']
-    except:
-        raise exceptions.AuthenticationFailed('unauthenticated')
+        return jwt.encode(payload, secret_key, algorithm="HS256")
+
+    # Access Token Decoding
+    def decode_access_token(self, token):
+        try:
+            secret_key = os.getenv('JWT_SECRET_KEY', 'default_secret')
+            payload = jwt.decode(token, secret_key, algorithms=['HS256'])
+            return payload['user_id']
+        except jwt.ExpiredSignatureError:
+            raise AuthenticationFailed('Token has expired')
+        except jwt.InvalidTokenError:
+            raise AuthenticationFailed('Invalid token')
+        except Exception as e:
+            raise AuthenticationFailed(f'Error decoding token: {str(e)}')
+
+    # Refresh Token Creation
+    def create_refresh_token(self, user_id):
+        payload = {
+            'user_id': user_id,
+            'exp': datetime.now(timezone.utc) + timedelta(days=7),  # 7 days expiration for refresh token
+            'iat': datetime.now(timezone.utc)
+        }
+        secret_key = os.getenv('JWT_REFRESH_SECRET_KEY', 'default_secret')
+        return jwt.encode(payload, secret_key, algorithm="HS256")
+
+    # Refresh Token Decoding
+    def decode_refresh_token(self, token):
+        try:
+            refresh_secret = os.getenv('JWT_REFRESH_SECRET_KEY', 'default_secret')
+            payload = jwt.decode(token, refresh_secret, algorithms='HS256')
+            print(f'payload: {payload}')
+            return payload['user_id']
+        except jwt.ExpiredSignatureError:
+            raise exceptions.AuthenticationFailed('Refresh token has expired')
+        except jwt.InvalidTokenError:
+            raise exceptions.AuthenticationFailed('Invalid refresh token')
+        except Exception as e:
+            raise exceptions.AuthenticationFailed(f'Error decoding refresh token: {str(e)}')

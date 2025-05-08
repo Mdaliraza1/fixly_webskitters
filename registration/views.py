@@ -5,34 +5,38 @@ from django.utils import timezone
 from rest_framework.response import Response
 from rest_framework.request import Request
 from rest_framework.views import APIView
-
-from .models import User,UserToken
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+from .models import User, UserToken
 from .serializers import (
     CustomerRegistrationSerializer, ServiceProviderRegistrationSerializer,
     UserUpdateSerializer, ServiceProviderUpdateSerializer, UserSerializer
 )
+from .authentication import JWTAuthentication, create_access_token, create_refresh_token, decode_access_token, decode_refresh_token
+import re
 
-from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
+# Define regular expressions
+email_regex = r'^[a-zA-Z0-9._%+-]+@example\.com$'
+contact_regex = r'^[0-9]{10}$'
 
-from .authentication import JWTAuthentication, create_access_token, create_refresh_token, decode_access_token,decode_refresh_token
 
 # Customer Registration View
 class CustomerRegistrationView(APIView):
     def post(self, request):
-        user=request.data
+        user = request.data
         print(f'User data received: {user}')
         if User.objects.filter(email=user['email']).exists():
-           raise exceptions.APIException('Email already exists!')
+            raise exceptions.APIException('Email already exists!')
         if User.objects.filter(username=user['username']).exists():
             raise exceptions.APIException('Username already exists!')
-        if user['password'] != user['password_confirm']:
+        if user['password'] != user['confirm_password']:
             raise exceptions.APIException('Passwords do not match!')
 
         serializer = CustomerRegistrationSerializer(data=user)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
 
 # Service Provider Registration View
 class ServiceProviderRegistrationView(APIView):
@@ -43,6 +47,7 @@ class ServiceProviderRegistrationView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
+
 
 # User List View
 class UserAPIView(APIView):
@@ -58,12 +63,12 @@ class UserAPIView(APIView):
             'is_admin': is_admin
         })
 
+
 # User Detail View
 class UserDetailView(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
-    
     def get(self, request, id):
         """
         Retrieves details of a specific user by their ID.
@@ -77,6 +82,7 @@ class UserDetailView(APIView):
             return Response({"detail": "You do not have permission to view this user's details."}, status=status.HTTP_403_FORBIDDEN)
         except User.DoesNotExist:
             return Response({"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+
 
 # User Update View
 class UserUpdateView(APIView):
@@ -92,7 +98,9 @@ class UserUpdateView(APIView):
             return Response({"detail": "You do not have permission to update this user's details."}, status=status.HTTP_403_FORBIDDEN)
         except User.DoesNotExist:
             return Response({"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND)
-#Provider update view
+
+
+# Service Provider Update View
 class ProviderUpdateView(APIView):
     def put(self, request, id):
         try:
@@ -107,36 +115,40 @@ class ProviderUpdateView(APIView):
         except User.DoesNotExist:
             return Response({"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND)
 
+
 # Login View with JWT
 class LoginAPIView(APIView):
     def post(self, request: Request):
         email = request.data['email']
         password = request.data['password']
         user = User.objects.filter(email=email).first()
-        if user is None:
-            raise exceptions.AuthenticationFailed('Invalid credentials')
+
+        if not user:
+            raise exceptions.AuthenticationFailed('Invalid email or password')
 
         if not user.check_password(password):
-            raise exceptions.AuthenticationFailed('Invalid credentials')
-        
+            raise exceptions.AuthenticationFailed('Invalid email or password')
+
         access_token = create_access_token(user.id)
         refresh_token = create_refresh_token(user.id)
 
-        # here we are storing the refresh token of a specific user with an expiration date of 7 days
+        # Store refresh token securely
         UserToken.objects.create(
-            user=user, 
-            token=refresh_token, 
-            expired_at = timezone.now() + timedelta(days=7)
+            user=user,
+            token=refresh_token,
+            expired_at=timezone.now() + timedelta(days=7)
         )
 
         response = Response()
-        response.set_cookie(key='refresh_token', value=refresh_token, httponly=True)
+        response.set_cookie(key='refresh_token', value=refresh_token, httponly=True, secure=True)
         response.data = {
             'access_token': access_token,
             'refresh_token': refresh_token
         }
         return response
-    
+
+
+# Refresh JWT Tokens View
 class RefreshAPIView(APIView):
     def post(self, request: Request):
         refresh_token = request.data.get('refresh_token') or request.COOKIES.get('refresh_token')
@@ -181,32 +193,37 @@ class RefreshAPIView(APIView):
             'access_token': new_access_token,
             'refresh_token': new_refresh_token
         })
-        response.set_cookie(key='refresh_token', value=new_refresh_token, httponly=True)
+        response.set_cookie(key='refresh_token', value=new_refresh_token, httponly=True, secure=True)
         return response
-    
+
+
 # Service Provider List View with filters for category and location
 class ServiceProviderListView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
-        """
-        Retrieves a list of service providers, with optional filters for category and location.
-        """
         queryset = User.objects.filter(user_type='SERVICE_PROVIDER')
         category = request.query_params.get('category')
         location = request.query_params.get('location')
-        
+
+        # Validate category and location
         if category:
+            if not ServiceCategory.objects.filter(name=category).exists():
+                return Response({'error': 'Invalid category'}, status=400)
             queryset = queryset.filter(category=category)
+
         if location:
+            if not Location.objects.filter(name=location).exists():
+                return Response({'error': 'Invalid location'}, status=400)
             queryset = queryset.filter(location=location)
 
         serializer = UserSerializer(queryset, many=True)
         return Response(serializer.data)
-    
+
+
+# Logout View with CSRF exemption
 @method_decorator(csrf_exempt, name='dispatch')
 class LogoutAPIView(APIView):
-
     def post(self, request: Request):
         refresh_token = request.data.get('refresh_token') or request.COOKIES.get('refresh_token')
 
@@ -215,7 +232,7 @@ class LogoutAPIView(APIView):
 
         UserToken.objects.filter(token=refresh_token).delete()
 
-        response: Response = Response({
+        response = Response({
             'status': 'success',
             'message': 'Logged out successfully'
         }, status=200)
