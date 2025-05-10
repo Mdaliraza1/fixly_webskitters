@@ -6,7 +6,7 @@ from .serializers import BookingSerializer, AvailableSlotsSerializer
 from registration.models import User, UserToken
 from django.utils import timezone
 from datetime import time, timedelta
-from registration.authentication import decode_refresh_token, create_access_token, create_refresh_token
+from registration.authentication import decode_refresh_token
 
 
 class CreateBookingView(APIView):
@@ -35,21 +35,6 @@ class CreateBookingView(APIView):
             return Response({'error': 'User not found'}, status=404)
         except Exception as e:
             return Response({'error': f'Invalid token: {str(e)}'}, status=401)
-
-        # Invalidate the old token
-        token_obj.delete()
-
-        # Generate new tokens
-        new_access_token = create_access_token(user.id)
-        new_refresh_token = create_refresh_token(user.id)
-
-        # Save new refresh token
-        UserToken.objects.create(
-            user=user,
-            token=new_refresh_token,
-            expired_at=timezone.now() + timedelta(days=7)
-        )
-
         # Create booking
         serializer = BookingSerializer(data=request.data)
         if serializer.is_valid():
