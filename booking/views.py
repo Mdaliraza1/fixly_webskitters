@@ -1,50 +1,78 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
+from rest_framework import status
+from datetime import time
 from .models import Booking
 from .serializers import BookingSerializer, AvailableSlotsSerializer
-from datetime import time
-from rest_framework import status
+from registration.models import User, UserToken
+from registration.authentication import decode_refresh_token
+
+
+def get_user_from_refresh_token(request):
+    token = request.data.get('refresh_token') or request.COOKIES.get('refresh_token')
+    if not token:
+        return None, Response({'error': 'Refresh token not provided'}, status=400)
+
+    try:
+        user_id = decode_refresh_token(token)
+        user = User.objects.get(pk=user_id)
+        token_obj = UserToken.objects.filter(user=user, token=token).first()
+        if not token_obj:
+            return None, Response({'error': 'Invalid or expired refresh token'}, status=401)
+        return user, None
+    except User.DoesNotExist:
+        return None, Response({'error': 'User not found'}, status=404)
+    except Exception as e:
+        return None, Response({'error': f'Token error: {str(e)}'}, status=401)
 
 
 class CreateBookingView(APIView):
-    permission_classes = [IsAuthenticated]
-
     def post(self, request):
-        serializer = BookingSerializer(data=request.data)
+        user, error_response = get_user_from_refresh_token(request)
+        if error_response:
+            return error_response
+
+        data = request.data.copy()
+        data['user'] = user.id  # Inject user ID for serializer
+        serializer = BookingSerializer(data=data)
         if serializer.is_valid():
-            serializer.save(user=request.user)  # Use authenticated user
+            serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class UserBookingsView(APIView):
-    permission_classes = [IsAuthenticated]
+    def post(self, request):  # Using POST to send refresh_token
+        user, error_response = get_user_from_refresh_token(request)
+        if error_response:
+            return error_response
 
-    def get(self, request):
-        bookings = Booking.objects.filter(user=request.user)
+        bookings = Booking.objects.filter(user=user)
         serializer = BookingSerializer(bookings, many=True)
         return Response(serializer.data)
 
 
 class ServiceProviderBookingsView(APIView):
-    permission_classes = [IsAuthenticated]
+    def post(self, request):  # Using POST to send refresh_token
+        user, error_response = get_user_from_refresh_token(request)
+        if error_response:
+            return error_response
 
-    def get(self, request):
-        bookings = Booking.objects.filter(service_provider=request.user)
+        bookings = Booking.objects.filter(service_provider=user)
         serializer = BookingSerializer(bookings, many=True)
         return Response(serializer.data)
 
 
 class AvailableSlotsView(APIView):
-    permission_classes = [IsAuthenticated]
+    def post(self, request):  # Using POST to send refresh_token and params
+        user, error_response = get_user_from_refresh_token(request)
+        if error_response:
+            return error_response
 
-    def get(self, request):
-        serializer = AvailableSlotsSerializer(data=request.query_params)
+        serializer = AvailableSlotsSerializer(data=request.data)
         if serializer.is_valid():
             date = serializer.validated_data['date']
             service_provider_id = serializer.validated_data['service_provider_id']
-
             booked_slots = Booking.objects.filter(
                 date=date,
                 service_provider_id=service_provider_id
