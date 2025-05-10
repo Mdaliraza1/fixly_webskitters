@@ -32,13 +32,16 @@ class CreateBookingView(APIView):
         if error_response:
             return error_response
 
+        # Include the user ID in the data being passed to the serializer
         data = request.data.copy()
-        data['user'] = user.id  # Inject user ID for serializer
+        data['user'] = user.id  # Ensure the user field is set here
+        
         serializer = BookingSerializer(data=data)
         if serializer.is_valid():
-            serializer.save()
+            serializer.save()  # Save the booking instance with user included
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 class UserBookingsView(APIView):
