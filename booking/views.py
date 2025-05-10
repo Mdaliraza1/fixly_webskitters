@@ -10,6 +10,8 @@ from registration.authentication import decode_refresh_token, create_access_toke
 
 
 class CreateBookingView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def post(self, request):
         refresh_token = request.data.get('refresh_token') or request.COOKIES.get('refresh_token')
         if not refresh_token:
@@ -50,14 +52,10 @@ class CreateBookingView(APIView):
 
         # Create booking
         serializer = BookingSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save(user=user)  # Pass user explicitly
-
-        return Response({
-            'booking': serializer.data,
-            'access_token': new_access_token,
-            'refresh_token': new_refresh_token
-        }, status=201)
+        if serializer.is_valid():
+            serializer.save(user=request.user)  # Automatically set the logged-in user
+            return Response(serializer.data, status=201)
+        return Response(serializer.errors, status=400)
 
 
 class UserBookingsView(APIView):
