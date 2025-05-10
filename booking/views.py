@@ -31,7 +31,10 @@ class CreateBookingView(APIView):
         user, error_response = get_user_from_refresh_token(request)
         if error_response:
             return error_response
-
+        if user.user_type == "Service_provider":
+            return Response(
+                {"detail": "You are not allowed to access this resource as a service provider."},
+                status=status.HTTP_403_FORBIDDEN)
         data = request.data.copy()
         print(f"Payload: {data}")  
 
@@ -49,6 +52,11 @@ class UserBookingsView(APIView):
         user, error_response = get_user_from_refresh_token(request)
         if error_response:
             return error_response
+        if user.user_type == "SERVICE_POVIDER":
+            return Response(
+                {"detail": "You are not allowed to access this resource as a service provider."},
+                status=status.HTTP_403_FORBIDDEN)
+        data = request.data.copy()
 
         bookings = Booking.objects.filter(user=user)
         serializer = BookingSerializer(bookings, many=True)
@@ -60,6 +68,11 @@ class ServiceProviderBookingsView(APIView):
         user, error_response = get_user_from_refresh_token(request)
         if error_response:
             return error_response
+        if user.user_type == "CUSTOMER":
+            return Response(
+                {"detail": "You are not allowed to access this resource as a Customer."},
+                status=status.HTTP_403_FORBIDDEN)
+        data = request.data.copy()
 
         bookings = Booking.objects.filter(service_provider=user)
         serializer = BookingSerializer(bookings, many=True)
