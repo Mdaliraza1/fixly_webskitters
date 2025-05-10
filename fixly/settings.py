@@ -124,5 +124,5 @@ CORS_ALLOW_CREDENTIALS = True       # Frontend will get cookies
 
 
 CSRF_TRUSTED_ORIGINS = [
-    'https://fixlywebskitters-production-ebff.up.railway.app/',  # Add your domain here
+    'https://fixlywebskitters-production-ebff.up.railway.app/',
 ]
