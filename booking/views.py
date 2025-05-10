@@ -5,7 +5,7 @@ from rest_framework.permissions import IsAuthenticated
 from .models import Booking
 from .serializers import BookingSerializer, AvailableSlotsSerializer
 from registration.models import User,UserToken
-from datetime import time,timezone,timedelta
+from datetime import time,timezone,timedelta,datetime
 from registration.authentication import decode_refresh_token,create_access_token,create_refresh_token
 
 class CreateBookingView(APIView):
@@ -40,7 +40,7 @@ class CreateBookingView(APIView):
         UserToken.objects.create(
             user=user,
             token=new_refresh_token,
-            expired_at=timezone.now() + timedelta(days=7)
+            expired_at=datetime.timezone.now() + timedelta(days=7)
         )
         serializer = BookingSerializer(data=request.data)
         if serializer.is_valid():
