@@ -1,7 +1,7 @@
 
 from rest_framework import serializers
 from .models import Booking
-from registration.models import User  # Assuming the custom user model is here
+from registration.models import User  
 
 class BookingSerializer(serializers.ModelSerializer):
     class Meta:
