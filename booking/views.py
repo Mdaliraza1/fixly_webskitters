@@ -36,8 +36,12 @@ class CreateBookingView(APIView):
         # Copy the request data to avoid modifying original request data
         data = request.data.copy()
 
+        # Log the data to check for missing fields
+        print(f"Request Data: {data}")
+
         # Ensure the 'user' field is set
         data['user'] = user.id  # Set the user ID here
+        print(f"Data after adding user: {data}")  # Log data to ensure 'user' is set
 
         # Create the booking serializer
         serializer = BookingSerializer(data=data)
