@@ -29,7 +29,10 @@ def get_user_from_refresh_token(request):
 class CreateBookingView(APIView):
     def post(self, request):
         # Get user from the refresh token
-        user= get_user_from_refresh_token(request)
+        user, error_response = get_user_from_refresh_token(request)
+        if error_response:
+            return error_response
+
         # Copy the request data to avoid modifying original request data
         data = request.data.copy()
 
