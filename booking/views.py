@@ -28,20 +28,25 @@ def get_user_from_refresh_token(request):
 
 class CreateBookingView(APIView):
     def post(self, request):
+        # Get user from the refresh token
         user, error_response = get_user_from_refresh_token(request)
         if error_response:
             return error_response
 
-        # Include the user ID in the data being passed to the serializer
+        # Copy the request data to avoid modifying original request data
         data = request.data.copy()
-        data['user'] = user.id  # Ensure the user field is set here
-        
+
+        # Ensure the 'user' field is set
+        data['user'] = user.id  # Set the user ID here
+
+        # Create the booking serializer
         serializer = BookingSerializer(data=data)
+
+        # Validate and save the serializer
         if serializer.is_valid():
-            serializer.save()  # Save the booking instance with user included
+            serializer.save()  # Save the booking instance with the user field included
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
 
 
 class UserBookingsView(APIView):
