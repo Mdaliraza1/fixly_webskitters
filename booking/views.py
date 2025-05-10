@@ -40,7 +40,7 @@ class CreateBookingView(APIView):
         UserToken.objects.create(
             user=user,
             token=new_refresh_token,
-            expired_at=datetime.timezone.now() + timedelta(days=7)
+            expired_at=timezone.now() + timedelta(days=7)
         )
         serializer = BookingSerializer(data=request.data)
         if serializer.is_valid():
