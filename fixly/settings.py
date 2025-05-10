@@ -25,7 +25,7 @@ INSTALLED_APPS = [
     'registration.apps.RegistrationConfig',
     'service.apps.ServiceConfig',
     'review.apps.ReviewConfig',
-    'booking.apps.BookingConfig'
+    'booking.apps.BookingConfig',
     #Installed Apps
     'rest_framework',
     'rest_framework_simplejwt',
