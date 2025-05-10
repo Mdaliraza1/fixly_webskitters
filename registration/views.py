@@ -1,16 +1,17 @@
 from rest_framework import permissions, status, exceptions
 from rest_framework.permissions import IsAuthenticated
-from datetime import timedelta, timezone
+from datetime import timedelta
 from django.utils import timezone
 from rest_framework.response import Response
 from rest_framework.request import Request
 from rest_framework.views import APIView
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
+
 from .models import User, UserToken
 from .serializers import (
     CustomerRegistrationSerializer, ServiceProviderRegistrationSerializer,
-    UserUpdateSerializer, ServiceProviderUpdateSerializer, UserSerializer,ProviderSerializer
+    UserUpdateSerializer, ServiceProviderUpdateSerializer, UserSerializer, ProviderSerializer
 )
 from .authentication import JWTAuthentication, create_access_token, create_refresh_token, decode_refresh_token
 
@@ -43,13 +44,14 @@ class ServiceProviderRegistrationView(APIView):
             return Response({'error': 'Email already exists!'}, status=400)
         if user.get('password') != user.get('confirm_password'):
             return Response({'error': 'Passwords do not match!'}, status=400)
+
         serializer = ServiceProviderRegistrationSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
-# User profile View
+# User Profile View
 class UserAPIView(APIView):
     def post(self, request: Request):
         refresh_token = request.data.get('refresh_token') or request.COOKIES.get('refresh_token')
@@ -144,9 +146,17 @@ class LoginAPIView(APIView):
         access_token = create_access_token(user.id)
         refresh_token = create_refresh_token(user.id)
 
-        UserToken.objects.create(user=user, token=refresh_token, expired_at=timezone.now() + timedelta(days=7))
+        UserToken.objects.create(
+            user=user,
+            token=refresh_token,
+            expired_at=timezone.now() + timedelta(days=7)
+        )
 
-        response = Response({'message':'Successfully logged in!!','access_token': access_token, 'refresh_token': refresh_token}, status=200)
+        response = Response({
+            'message': 'Successfully logged in!',
+            'access_token': access_token,
+            'refresh_token': refresh_token
+        }, status=200)
         response.set_cookie(key='refresh_token', value=refresh_token, httponly=True, secure=True)
         return response
 
@@ -171,10 +181,17 @@ class RefreshAPIView(APIView):
         new_access_token = create_access_token(user.id)
         new_refresh_token = create_refresh_token(user.id)
 
-        UserToken.objects.filter(user=user).delete()  # Remove old refresh token
-        UserToken.objects.create(user=user, token=new_refresh_token, expired_at=timezone.now() + timedelta(days=7))
+        UserToken.objects.filter(user=user).delete()
+        UserToken.objects.create(
+            user=user,
+            token=new_refresh_token,
+            expired_at=timezone.now() + timedelta(days=7)
+        )
 
-        response = Response({'access_token': new_access_token, 'refresh_token': new_refresh_token}, status=200)
+        response = Response({
+            'access_token': new_access_token,
+            'refresh_token': new_refresh_token
+        }, status=200)
         response.set_cookie(key='refresh_token', value=new_refresh_token, httponly=True, secure=True)
         return response
 
