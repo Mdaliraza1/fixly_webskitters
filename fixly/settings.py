@@ -1,7 +1,7 @@
 from pathlib import Path
 from dotenv import load_dotenv
 import os
-from datetime import timedelta
+
 
 load_dotenv()
 
@@ -21,9 +21,12 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    #My Apps
     'registration.apps.RegistrationConfig',
     'service.apps.ServiceConfig',
     'review.apps.ReviewConfig',
+    'booking.apps.BookingConfig'
+    #Installed Apps
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
@@ -124,9 +127,5 @@ CORS_ALLOW_CREDENTIALS = True       # Frontend will get cookies
 
 
 CSRF_TRUSTED_ORIGINS = [
-<<<<<<< HEAD
     'https://fixlywebskitters-production-ebff.up.railway.app/',
-=======
-    'https://fixlywebskitters-production-ebff.up.railway.app',  # Add your domain here
->>>>>>> 679ee86252f02b3cfd945e57600ebe2c25fbc77e
 ]
