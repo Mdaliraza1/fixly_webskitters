@@ -182,11 +182,11 @@ class UserUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'contact', 'gender']  # 'location' removed
+        fields = ['first_name', 'last_name', 'contact', 'gender','email']  # 'location' removed
 
     def validate(self, data):
         user = self.instance
-        if user.user_type != 'CUSTOMER':
+        if user.user_type != 'USER':
             raise serializers.ValidationError("Only customers can update this profile.")
         return data
 
@@ -204,7 +204,7 @@ class ServiceProviderUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'contact', 'gender']
+        fields = ['first_name', 'last_name', 'contact', 'gender','email', 'location']
 
     def validate(self, data):
         user = self.instance

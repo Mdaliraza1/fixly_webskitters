@@ -1,5 +1,4 @@
-from rest_framework import permissions, status, exceptions
-from rest_framework.permissions import IsAuthenticated
+from rest_framework import permissions, status
 from django.shortcuts import render
 from datetime import timedelta
 from django.utils import timezone
@@ -15,7 +14,7 @@ from .serializers import (
     CustomerRegistrationSerializer, ServiceProviderRegistrationSerializer,
     UserUpdateSerializer, ServiceProviderUpdateSerializer, UserSerializer, ProviderSerializer
 )
-from .authentication import JWTAuthentication, create_access_token, create_refresh_token, decode_refresh_token
+from .authentication import create_access_token, create_refresh_token, decode_refresh_token
 
 def index(request):
     return render(request, 'index.html')
