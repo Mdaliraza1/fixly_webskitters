@@ -26,7 +26,7 @@ class User(AbstractUser):
 
 class UserToken(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='tokens')
-    token = models.CharField(max_length=255, unique=True)           # Typically a refresh token
+    token = models.CharField(max_length=255, unique=True)           # Refresh token
     created_at = models.DateTimeField(auto_now_add=True)
     expired_at = models.DateTimeField()
 

@@ -82,7 +82,7 @@ class CustomerRegistrationSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         # Remove confirm_password before saving
-        validated_data.pop('confirm_password', None)  # Remove confirm_password from validated data
+        validated_data.pop('confirm_password', None)  
         password = validated_data.pop('password', None)
         
         # Set username to be the same as email if not provided
@@ -172,6 +172,7 @@ class ServiceProviderRegistrationSerializer(serializers.ModelSerializer):
 
 
 # User Update Serializer (for Customer)
+# User Update Serializer (for Customer)
 class UserUpdateSerializer(serializers.ModelSerializer):
     contact = serializers.CharField(validators=[contact_regex])
 
@@ -180,9 +181,6 @@ class UserUpdateSerializer(serializers.ModelSerializer):
         fields = ['username', 'first_name', 'last_name', 'contact', 'gender', 'location', 'category']
 
     def validate(self, data):
-        # Ensure 'category' is provided for service providers
-        if 'category' not in data and hasattr(self.instance, 'user_type') and self.instance.user_type == 'SERVICE_PROVIDER':
-            raise serializers.ValidationError("Category is required for service providers.")
         return data
 
 
@@ -197,7 +195,9 @@ class ServiceProviderUpdateSerializer(serializers.ModelSerializer):
         fields = ['first_name', 'last_name', 'contact', 'gender', 'location', 'category']
 
     def validate(self, data):
-        # Ensure 'category' is provided for service providers
-        if not data.get('category') and hasattr(self.instance, 'user_type') and self.instance.user_type == 'SERVICE_PROVIDER':
-            raise serializers.ValidationError("Category is required for service providers.")
+        user = self.instance
+        if user.user_type == 'SERVICE_PROVIDER':
+            category = data.get('category', getattr(user, 'category', None))
+            if not category:
+                raise serializers.ValidationError("Category is required for service providers.")
         return data

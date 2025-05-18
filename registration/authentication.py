@@ -17,7 +17,7 @@ class JWTAuthentication(BaseAuthentication):
             raise AuthenticationFailed('Authorization header is malformed')
 
         try:
-            token = auth_header[1]  # No need to decode to utf-8, directly work with bytestring
+            token = auth_header[1]
             print(f'Token received from client: {token}')
         except UnicodeDecodeError:
             raise AuthenticationFailed('Invalid token encoding')
@@ -37,7 +37,7 @@ def create_access_token(user_id):
     payload = {
         'user_id': user_id,
         'iat': datetime.now(timezone.utc),
-        'exp': datetime.now(timezone.utc) + timedelta(seconds=30),  # Expiry set to 1 hour
+        'exp': datetime.now(timezone.utc) + timedelta(seconds=30),  # Expiry set to 30 seconds
     }
     secret_key = os.getenv('JWT_SECRET_KEY', 'default_secret')
     return jwt.encode(payload, secret_key, algorithm="HS256")
@@ -59,8 +59,8 @@ def decode_access_token(token):
 def create_refresh_token(user_id):
     payload = {
         'user_id': user_id,
+        'iat': datetime.now(timezone.utc),
         'exp': datetime.now(timezone.utc) + timedelta(days=7),  # Expiry set to 7 days
-        'iat': datetime.now(timezone.utc)
     }
     secret_key = os.getenv('JWT_REFRESH_SECRET_KEY', 'default_secret')
     return jwt.encode(payload, secret_key, algorithm="HS256")

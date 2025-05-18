@@ -28,9 +28,7 @@ def get_user_from_refresh_token(request):
 
 class CreateBookingView(APIView):
     def post(self, request):
-        user, error_response = get_user_from_refresh_token(request)
-        if error_response:
-            return error_response
+        user = get_user_from_refresh_token(request)
         if user.user_type == "Service_provider":
             return Response(
                 {"detail": "You are not allowed to access this resource as a service provider."},
@@ -42,9 +40,8 @@ class CreateBookingView(APIView):
         if serializer.is_valid():
             print("Serializer is valid. Saving booking.")
             serializer.save(user=user) 
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
+            return Response(serializer.data,  status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
 
 
 class UserBookingsView(APIView):
@@ -52,15 +49,22 @@ class UserBookingsView(APIView):
         user, error_response = get_user_from_refresh_token(request)
         if error_response:
             return error_response
+
         if user.user_type == "SERVICE_POVIDER":
             return Response(
                 {"detail": "You are not allowed to access this resource as a service provider."},
-                status=status.HTTP_403_FORBIDDEN)
-        data = request.data.copy()
+                status=status.HTTP_403_FORBIDDEN
+            )
 
         bookings = Booking.objects.filter(user=user)
         serializer = BookingSerializer(bookings, many=True)
-        return Response(serializer.data)
+        return Response(
+            {
+                "message": "Booking retrieved successfully",
+                "bookings": serializer.data
+            },
+            status=status.HTTP_200_OK
+        )
 
 
 class ServiceProviderBookingsView(APIView):
@@ -68,15 +72,22 @@ class ServiceProviderBookingsView(APIView):
         user, error_response = get_user_from_refresh_token(request)
         if error_response:
             return error_response
+
         if user.user_type == "CUSTOMER":
             return Response(
                 {"detail": "You are not allowed to access this resource as a Customer."},
-                status=status.HTTP_403_FORBIDDEN)
-        data = request.data.copy()
+                status=status.HTTP_403_FORBIDDEN
+            )
 
         bookings = Booking.objects.filter(service_provider=user)
         serializer = BookingSerializer(bookings, many=True)
-        return Response(serializer.data)
+        return Response(
+            {
+                "message": "Bookings retrieved successfully",
+                "bookings": serializer.data
+            },
+            status=status.HTTP_200_OK
+        )
 
 
 class AvailableSlotsView(APIView):
@@ -89,13 +100,27 @@ class AvailableSlotsView(APIView):
         if serializer.is_valid():
             date = serializer.validated_data['date']
             service_provider_id = serializer.validated_data['service_provider_id']
-            booked_slots = Booking.objects.filter(
+
+            # Fetch already booked 1-hour slots
+            booked_slots = list(Booking.objects.filter(
                 date=date,
                 service_provider_id=service_provider_id
-            ).values_list('time_slot', flat=True)
+            ).values_list('time_slot', flat=True))
 
+            # Define 1-hour slots: 10:00 AM to 6:00 PM (last slot at 5 PM to 6 PM)
             all_slots = [time(hour=h) for h in range(10, 18)]
-            available_slots = [slot.strftime("%H:%M") for slot in all_slots if slot not in booked_slots]
 
-            return Response({'available_slots': available_slots})
+            # Filter out booked ones
+            available_slots = [
+                slot.strftime("%H:%M") for slot in all_slots if slot not in booked_slots
+            ]
+
+            return Response(
+                {
+                    "message": "Available slots retrieved successfully",
+                    "available_slots": available_slots
+                },
+                status=status.HTTP_200_OK
+            )
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

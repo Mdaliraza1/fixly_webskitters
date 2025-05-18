@@ -1,5 +1,6 @@
 from rest_framework import permissions, status, exceptions
 from rest_framework.permissions import IsAuthenticated
+from django.shortcuts import render
 from datetime import timedelta
 from django.utils import timezone
 from rest_framework.response import Response
@@ -15,6 +16,8 @@ from .serializers import (
 )
 from .authentication import JWTAuthentication, create_access_token, create_refresh_token, decode_refresh_token
 
+def index(request):
+    return render(request, 'index.html')
 
 # Customer Registration View
 class CustomerRegistrationView(APIView):
@@ -105,14 +108,15 @@ class UserUpdateView(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
-    def put(self, request, *args, **kwargs):
+    def patch(self, request, *args, **kwargs):
         user = request.user
-        serializer = UserUpdateSerializer(user, data=request.data)
+        serializer = UserUpdateSerializer(user, data=request.data, partial=True)
 
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data)
+            return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 # Service Provider Update View
@@ -120,13 +124,13 @@ class ProviderUpdateView(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
-    def put(self, request, *args, **kwargs):
+    def patch(self, request, *args, **kwargs):
         user = request.user
-        serializer = ServiceProviderUpdateSerializer(user, data=request.data)
+        serializer = ServiceProviderUpdateSerializer(user, data=request.data, partial=True)
 
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data)
+            return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
