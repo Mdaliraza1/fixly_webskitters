@@ -105,9 +105,13 @@ class UserAPIView(APIView):
 
 # User Update View
 class UserUpdateView(APIView):
-    
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        serializer = UserUpdateSerializer(user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     def patch(self, request, *args, **kwargs):
+        # your existing patch code
         refresh_token = request.data.get('refresh_token') or request.COOKIES.get('refresh_token')
         user = request.user
         serializer = UserUpdateSerializer(user, data=request.data, partial=True)
@@ -115,7 +119,6 @@ class UserUpdateView(APIView):
         if serializer.is_valid():
             serializer.save()
 
-            # Create new tokens after update
             access_token = create_access_token(user.id)
             refresh_token = create_refresh_token(user.id)
 
@@ -134,8 +137,8 @@ class UserUpdateView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
+
 class ProviderUpdateView(APIView):
-    
     def patch(self, request, *args, **kwargs):
         refresh_token = request.data.get('refresh_token') or request.COOKIES.get('refresh_token')
         user = request.user
