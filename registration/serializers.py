@@ -182,7 +182,7 @@ class UserUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'contact', 'gender','email']  # 'location' removed
+        fields = ['first_name', 'last_name', 'contact', 'gender','email']  
 
     def validate(self, data):
         user = self.instance
@@ -198,7 +198,6 @@ class UserUpdateSerializer(serializers.ModelSerializer):
 
 
 # Service Provider Update Serializer
-
 class ServiceProviderUpdateSerializer(serializers.ModelSerializer):
     contact = serializers.CharField(validators=[contact_validator])
 
