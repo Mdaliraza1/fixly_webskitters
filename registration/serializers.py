@@ -2,11 +2,16 @@ import re
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
 from .models import User
+from django.core.validators import RegexValidator
 
 # Regex Validators
 contact_regex = r'^[1-9]\d{9}$'
 email_regex = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
 password_regex = r'^(?=.*[A-Z])(?=.*[0-9])(?=.*[^a-zA-Z0-9\s]).{8,}$'
+contact_validator = RegexValidator(
+    regex=r'^[1-9]\d{9}$',
+    message='Enter a valid 10-digit mobile number starting from 1-9.'
+)
 
 
 # User Serializer
@@ -173,7 +178,7 @@ class ServiceProviderRegistrationSerializer(serializers.ModelSerializer):
 
 # User Update Serializer (for Customer)
 class UserUpdateSerializer(serializers.ModelSerializer):
-    contact = serializers.CharField(validators=[contact_regex])
+    contact = serializers.CharField(validators=[contact_validator])
 
     class Meta:
         model = User
@@ -183,9 +188,10 @@ class UserUpdateSerializer(serializers.ModelSerializer):
         return data
 
 
+
 # Service Provider Update Serializer (for Service Providers)
 class ServiceProviderUpdateSerializer(serializers.ModelSerializer):
-    contact = serializers.CharField(validators=[contact_regex])
+    contact = serializers.CharField(validators=[contact_validator])
     location = serializers.CharField(required=False, allow_blank=True)
     category = serializers.CharField(required=False, allow_blank=True)
 
