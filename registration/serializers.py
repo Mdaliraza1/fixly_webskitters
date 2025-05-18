@@ -18,7 +18,7 @@ contact_validator = RegexValidator(
 class UserSerializer(ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'first_name', 'last_name', 'email', 'password']
+        fields = ['id', 'first_name', 'last_name', 'email', 'password','user_type', 'contact',]
         
         extra_kwargs = {        # This allows the password field to be included in requests but excluded from responses.
             'username': {'required': False},
