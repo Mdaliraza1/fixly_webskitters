@@ -1,32 +1,32 @@
 import jwt
 import os
 from datetime import datetime, timedelta, timezone
-from dotenv import load_dotenv
 from rest_framework.authentication import BaseAuthentication, get_authorization_header
 from rest_framework.exceptions import AuthenticationFailed
 from registration.models import User
-from rest_framework import exceptions
+from dotenv import load_dotenv
 
-# Load environment variables from .env file
 load_dotenv()
-
 
 class JWTAuthentication(BaseAuthentication):
     def authenticate(self, request):
         auth_header = get_authorization_header(request).split()
 
-        if len(auth_header) != 2:
-            raise AuthenticationFailed('Authorization header is malformed')
+        if not auth_header or auth_header[0].lower() != b'bearer':
+            raise AuthenticationFailed('Authorization header must start with Bearer')
+
+        if len(auth_header) == 1:
+            raise AuthenticationFailed('Token not found')
+        elif len(auth_header) > 2:
+            raise AuthenticationFailed('Authorization header must be Bearer token')
 
         try:
             token = auth_header[1].decode('utf-8')
-            print(f'Token received from client: {token}')
         except UnicodeDecodeError:
             raise AuthenticationFailed('Invalid token encoding.')
 
         try:
-            # ✅ Use refresh token for authentication
-            user_id = decode_refresh_token(token)
+            user_id = decode_refresh_token(token)  # Using refresh token here
             user = User.objects.get(pk=user_id)
         except User.DoesNotExist:
             raise AuthenticationFailed('User not found.')
@@ -55,7 +55,7 @@ def decode_access_token(token):
         payload = jwt.decode(token, secret_key, algorithms=['HS256'])
         return payload['user_id']
     except Exception as e:
-        raise exceptions.AuthenticationFailed(f'{str(e)}')
+        raise AuthenticationFailed(f'{str(e)}')
 
 
 def create_refresh_token(user_id):
@@ -65,7 +65,7 @@ def create_refresh_token(user_id):
         'exp': datetime.now(timezone.utc) + timedelta(days=7),  # 7 days expiry
     }
     secret_key = os.getenv('JWT_REFRESH_SECRET_KEY', 'default_secret')
-    token = jwt.encode(payload, secret_key, algorithm='HS256')
+    token = jwt.encode(payload, secret_key, algorithm="HS256")
     return token
 
 
@@ -74,7 +74,5 @@ def decode_refresh_token(token):
         refresh_secret = os.getenv('JWT_REFRESH_SECRET_KEY', 'default_secret')
         payload = jwt.decode(token, refresh_secret, algorithms=['HS256'])
         return payload['user_id']
-    except jwt.ExpiredSignatureError:
-        raise exceptions.AuthenticationFailed('Refresh token expired')
-    except jwt.InvalidTokenError as e:
-        raise exceptions.AuthenticationFailed(f'Invalid refresh token: {str(e)}')
+    except Exception:
+        raise AuthenticationFailed('Invalid or expired refresh token')
