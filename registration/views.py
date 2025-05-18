@@ -91,7 +91,7 @@ class UserUpdateView(APIView):
             return Response({'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({'detail': f'Token validation error: {str(e)}'}, status=status.HTTP_401_UNAUTHORIZED)
-        if user.user_type != 'CUSTOMER':
+        if user.user_type != 'USER':
             return Response({'error': 'Only customers can access this route.'}, status=status.HTTP_403_FORBIDDEN)
 
         serializer = UserUpdateSerializer(user, data=request.data, partial=True)
