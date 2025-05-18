@@ -172,7 +172,6 @@ class ServiceProviderRegistrationSerializer(serializers.ModelSerializer):
 
 
 # User Update Serializer (for Customer)
-# User Update Serializer (for Customer)
 class UserUpdateSerializer(serializers.ModelSerializer):
     contact = serializers.CharField(validators=[contact_regex])
 

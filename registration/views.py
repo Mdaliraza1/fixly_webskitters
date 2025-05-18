@@ -114,12 +114,26 @@ class UserUpdateView(APIView):
 
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
+
+            # Create new tokens after update
+            access_token = create_access_token(user.id)
+            refresh_token = create_refresh_token(user.id)
+
+            UserToken.objects.create(
+                user=user,
+                token=refresh_token,
+                expired_at=timezone.now() + timedelta(days=7)
+            )
+
+            return Response({
+                'user': serializer.data,
+                'access_token': access_token,
+                'refresh_token': refresh_token
+            }, status=status.HTTP_200_OK)
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-
-# Service Provider Update View
 class ProviderUpdateView(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
@@ -130,8 +144,25 @@ class ProviderUpdateView(APIView):
 
         if serializer.is_valid():
             serializer.save()
-            return Response(serializer.data, status=status.HTTP_200_OK)
+
+            # Create new tokens after update
+            access_token = create_access_token(user.id)
+            refresh_token = create_refresh_token(user.id)
+
+            UserToken.objects.create(
+                user=user,
+                token=refresh_token,
+                expired_at=timezone.now() + timedelta(days=7)
+            )
+
+            return Response({
+                'user': serializer.data,
+                'access_token': access_token,
+                'refresh_token': refresh_token
+            }, status=status.HTTP_200_OK)
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 # Login API
