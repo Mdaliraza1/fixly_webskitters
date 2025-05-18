@@ -179,9 +179,16 @@ class ServiceProviderRegistrationSerializer(serializers.ModelSerializer):
 # Customer Update Serializer
 class UserUpdateSerializer(serializers.ModelSerializer):
     contact = serializers.CharField(validators=[contact_validator])
+
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'contact', 'gender', 'location']
+        fields = ['first_name', 'last_name', 'contact', 'gender']  # 'location' removed
+
+    def validate(self, data):
+        user = self.instance
+        if user.user_type != 'CUSTOMER':
+            raise serializers.ValidationError("Only customers can update this profile.")
+        return data
 
     def update(self, instance, validated_data):
         for attr, value in validated_data.items():
@@ -191,9 +198,9 @@ class UserUpdateSerializer(serializers.ModelSerializer):
 
 
 # Service Provider Update Serializer
+
 class ServiceProviderUpdateSerializer(serializers.ModelSerializer):
     contact = serializers.CharField(validators=[contact_validator])
-
 
     class Meta:
         model = User
@@ -201,10 +208,12 @@ class ServiceProviderUpdateSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         user = self.instance
-        if user.user_type == 'SERVICE_PROVIDER':
-            category = data.get('category') or getattr(user, 'category', None)
-            if not category:
-                raise serializers.ValidationError("Category is required for service providers.")
+        if user.user_type != 'SERVICE_PROVIDER':
+            raise serializers.ValidationError("Only service providers can update this profile.")
+
+        category = data.get('category') or getattr(user, 'category', None)
+        if not category:
+            raise serializers.ValidationError("Category is required for service providers.")
         return data
 
     def update(self, instance, validated_data):

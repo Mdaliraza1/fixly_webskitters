@@ -11,6 +11,7 @@ load_dotenv()
 class JWTAuthentication(BaseAuthentication):
     def authenticate(self, request):
         auth_header = get_authorization_header(request).split()
+        print("Auth header parts:", auth_header)
 
         if not auth_header or auth_header[0].lower() != b'bearer':
             raise AuthenticationFailed('Authorization header must start with Bearer')
@@ -74,5 +75,8 @@ def decode_refresh_token(token):
         refresh_secret = os.getenv('JWT_REFRESH_SECRET_KEY', 'default_secret')
         payload = jwt.decode(token, refresh_secret, algorithms=['HS256'])
         return payload['user_id']
-    except Exception:
-        raise AuthenticationFailed('Invalid or expired refresh token')
+    except jwt.ExpiredSignatureError:
+        raise AuthenticationFailed('Refresh token has expired.')
+    except jwt.InvalidTokenError:
+        raise AuthenticationFailed('Invalid refresh token.')
+

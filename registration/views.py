@@ -8,6 +8,7 @@ from rest_framework.request import Request
 from rest_framework.views import APIView
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
+from django.db import transaction
 
 from .models import User, UserToken
 from .serializers import (
@@ -69,45 +70,38 @@ class UserAPIView(APIView):
         })
 
 # User Update View
-from django.db import transaction
-
-class BaseUpdateView(APIView):
-    serializer_class = None  
+class UserUpdateView(APIView):
+    permission_classes = [IsAuthenticated]
 
     @transaction.atomic
-    def patch(self, request: Request):
+    def patch(self, request):
         user = request.user
-        serializer = self.serializer_class(user, data=request.data, partial=True)
+        if user.user_type != 'CUSTOMER':
+            return Response({'error': 'Only customers can access this route.'}, status=status.HTTP_403_FORBIDDEN)
 
+        serializer = UserUpdateSerializer(user, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
-
-            access_token = create_access_token(user.id)
-            refresh_token = create_refresh_token(user.id)
-
-            UserToken.objects.filter(user=user, expired_at__gt=timezone.now()).update(expired_at=timezone.now())
-
-            UserToken.objects.create(
-                user=user,
-                token=refresh_token,
-                expired_at=timezone.now() + timedelta(days=7)
-            )
-
-            return Response({
-                'user': serializer.data,
-                'access_token': access_token,
-                'refresh_token': refresh_token
-            }, status=status.HTTP_200_OK)
+            return Response({'message': 'Customer profile updated successfully.', 'user': serializer.data}, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class UserUpdateView(BaseUpdateView):
-    serializer_class = UserUpdateSerializer
+class ProviderUpdateView(APIView):
+    permission_classes = [IsAuthenticated]
 
+    @transaction.atomic
+    def patch(self, request):
+        user = request.user
+        if user.user_type != 'SERVICE_PROVIDER':
+            return Response({'error': 'Only service providers can access this route.'}, status=status.HTTP_403_FORBIDDEN)
 
-class ProviderUpdateView(BaseUpdateView):
-    serializer_class = ServiceProviderUpdateSerializer
+        serializer = ServiceProviderUpdateSerializer(user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({'message': 'Service provider profile updated successfully.', 'user': serializer.data}, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 # Login API
 class LoginAPIView(APIView):
