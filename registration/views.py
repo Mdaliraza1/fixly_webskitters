@@ -80,7 +80,6 @@ class UserAPIView(APIView):
         }, status=status.HTTP_200_OK)
 # User Update View
 class UserUpdateView(APIView):
-    
     def patch(self, request):
         refresh_token = request.data.get('refresh_token') or request.COOKIES.get('refresh_token')
         if not refresh_token:
@@ -104,11 +103,18 @@ class UserUpdateView(APIView):
 
 
 class ProviderUpdateView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    @transaction.atomic
     def patch(self, request):
-        user = request.user
+        refresh_token = request.data.get('refresh_token') or request.COOKIES.get('refresh_token')
+        if not refresh_token:
+            return Response({'detail': 'Refresh token is required'}, status=status.HTTP_401_UNAUTHORIZED)
+        try:
+            user_id = decode_refresh_token(refresh_token)
+            user = User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            return Response({'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'detail': f'Token validation error: {str(e)}'}, status=status.HTTP_401_UNAUTHORIZED)
+
         if user.user_type != 'SERVICE_PROVIDER':
             return Response({'error': 'Only service providers can access this route.'}, status=status.HTTP_403_FORBIDDEN)
 
@@ -116,8 +122,8 @@ class ProviderUpdateView(APIView):
         if serializer.is_valid():
             serializer.save()
             return Response({'message': 'Service provider profile updated successfully.', 'user': serializer.data}, status=status.HTTP_200_OK)
-
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 # Login API
 class LoginAPIView(APIView):
