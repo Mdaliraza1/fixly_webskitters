@@ -105,10 +105,10 @@ class UserAPIView(APIView):
 
 # User Update View
 class UserUpdateView(APIView):
-    authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
+    
 
     def patch(self, request, *args, **kwargs):
+        refresh_token = request.data.get('refresh_token') or request.COOKIES.get('refresh_token')
         user = request.user
         serializer = UserUpdateSerializer(user, data=request.data, partial=True)
 
@@ -135,10 +135,9 @@ class UserUpdateView(APIView):
 
 
 class ProviderUpdateView(APIView):
-    authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticated]
-
+    
     def patch(self, request, *args, **kwargs):
+        refresh_token = request.data.get('refresh_token') or request.COOKIES.get('refresh_token')
         user = request.user
         serializer = ServiceProviderUpdateSerializer(user, data=request.data, partial=True)
 
