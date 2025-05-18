@@ -8,42 +8,34 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+from rest_framework.authentication import BaseAuthentication, get_authorization_header
+from rest_framework.exceptions import AuthenticationFailed
+
 class JWTAuthentication(BaseAuthentication):
     def authenticate(self, request):
         auth_header = get_authorization_header(request).split()
-
+        
         if not auth_header or auth_header[0].lower() != b'bearer':
-            raise AuthenticationFailed('Authorization header must start with Bearer')
+            return None  # No token or wrong prefix, so no authentication here
 
-        if len(auth_header) != 2:
-            raise AuthenticationFailed('Authorization header is malformed')
+        if len(auth_header) == 1:
+            raise AuthenticationFailed('Invalid token header. No credentials provided.')
+        elif len(auth_header) > 2:
+            raise AuthenticationFailed('Invalid token header. Token string should not contain spaces.')
 
         try:
             token = auth_header[1].decode('utf-8')
-            print(f'Token received from client: {token}')
-        except UnicodeDecodeError:
-            raise AuthenticationFailed('Invalid token encoding')
+        except UnicodeError:
+            raise AuthenticationFailed('Invalid token encoding.')
 
-        user = None
+        user_id = decode_access_token(token)
         try:
-            # Try to decode as access token first
-            user_id = decode_access_token(token)
             user = User.objects.get(pk=user_id)
-        except AuthenticationFailed as e:
-            # If access token expired, try refresh token
-            if 'expired' in str(e).lower():
-                try:
-                    user_id = decode_refresh_token(token)
-                    user = User.objects.get(pk=user_id)
-                except Exception as refresh_exc:
-                    raise AuthenticationFailed(f'Token validation error: {str(refresh_exc)}')
-            else:
-                # Any other access token error
-                raise AuthenticationFailed(f'Token validation error: {str(e)}')
         except User.DoesNotExist:
-            raise AuthenticationFailed('User not found')
+            raise AuthenticationFailed('User not found.')
 
-        return (user, {'is_admin': user.is_superuser})
+        return (user, token)
+
 
 
 def create_access_token(user_id):
