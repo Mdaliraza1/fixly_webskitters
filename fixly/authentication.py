@@ -1,19 +1,30 @@
-from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework.authentication import BaseAuthentication, get_authorization_header
+from rest_framework.exceptions import AuthenticationFailed
+from registration.models import User
+from dotenv import load_dotenv
+from registration.authentication import decode_access_token
+load_dotenv()
 
-class JWTAuthenticationFromCookie(JWTAuthentication):
+
+class JWTAuthentication(BaseAuthentication):
     def authenticate(self, request):
-        header = self.get_header(request)
+        auth_header = get_authorization_header(request).split()
 
-        # If no Authorization header, check cookies
-        if header is None:
-            raw_token = request.COOKIES.get('token')
-            if raw_token is None:
-                return None
-        else:
-            raw_token = self.get_raw_token(header)
+        if len(auth_header) != 2:
+            raise AuthenticationFailed('Authorization header is malformed')
 
-        if raw_token is None:
-            return None
+        try:
+            token = auth_header[1].decode('utf-8')  # Decode bytes to str
+            print(f'Token received from client: {token}')
+        except UnicodeDecodeError:
+            raise AuthenticationFailed('Invalid token encoding')
 
-        validated_token = self.get_validated_token(raw_token)
-        return self.get_user(validated_token), validated_token
+        try:
+            user_id = decode_access_token(token)
+            user = User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            raise AuthenticationFailed('User not found')
+        except Exception as e:
+            raise AuthenticationFailed(f'Token validation error: {str(e)}')
+
+        return (user, {'is_admin': user.is_superuser})
