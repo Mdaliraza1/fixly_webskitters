@@ -105,12 +105,7 @@ class UserAPIView(APIView):
 
 # User Update View
 class UserUpdateView(APIView):
-    def get(self, request, *args, **kwargs):
-        user = request.user
-        serializer = UserUpdateSerializer(user)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    def patch(self, request, *args, **kwargs):
+    def patch(self, request: Request):
         # your existing patch code
         refresh_token = request.data.get('refresh_token') or request.COOKIES.get('refresh_token')
         user = request.user
@@ -139,7 +134,7 @@ class UserUpdateView(APIView):
 
 
 class ProviderUpdateView(APIView):
-    def patch(self, request, *args, **kwargs):
+    def patch(self, request: Request):
         refresh_token = request.data.get('refresh_token') or request.COOKIES.get('refresh_token')
         user = request.user
         serializer = ServiceProviderUpdateSerializer(user, data=request.data, partial=True)

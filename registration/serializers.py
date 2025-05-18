@@ -177,7 +177,7 @@ class UserUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['username', 'first_name', 'last_name', 'contact', 'gender', 'location', 'category']
+        fields = ['username', 'first_name', 'last_name', 'contact', 'gender', 'location']
 
     def validate(self, data):
         return data
