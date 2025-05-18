@@ -176,32 +176,39 @@ class ServiceProviderRegistrationSerializer(serializers.ModelSerializer):
 
 
 
-# User Update Serializer (for Customer)
+# Customer Update Serializer
 class UserUpdateSerializer(serializers.ModelSerializer):
     contact = serializers.CharField(validators=[contact_validator])
     class Meta:
         model = User
         fields = ['first_name', 'last_name', 'contact', 'gender', 'location']
 
-    def validate(self, data):
-        return data
+    def update(self, instance, validated_data):
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return instance
 
 
-
-# Service Provider Update Serializer (for Service Providers)
+# Service Provider Update Serializer
 class ServiceProviderUpdateSerializer(serializers.ModelSerializer):
     contact = serializers.CharField(validators=[contact_validator])
-    location = serializers.CharField(required=False, allow_blank=True)
-    category = serializers.CharField(required=False, allow_blank=True)
+
 
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'contact', 'gender', 'location', 'category']
+        fields = ['first_name', 'last_name', 'contact', 'gender']
 
     def validate(self, data):
         user = self.instance
         if user.user_type == 'SERVICE_PROVIDER':
-            category = data.get('category', getattr(user, 'category', None))
+            category = data.get('category') or getattr(user, 'category', None)
             if not category:
                 raise serializers.ValidationError("Category is required for service providers.")
         return data
+
+    def update(self, instance, validated_data):
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return instance
