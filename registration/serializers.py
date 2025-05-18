@@ -179,10 +179,9 @@ class ServiceProviderRegistrationSerializer(serializers.ModelSerializer):
 # User Update Serializer (for Customer)
 class UserUpdateSerializer(serializers.ModelSerializer):
     contact = serializers.CharField(validators=[contact_validator])
-
     class Meta:
         model = User
-        fields = ['username', 'first_name', 'last_name', 'contact', 'gender', 'location']
+        fields = ['first_name', 'last_name', 'contact', 'gender', 'location']
 
     def validate(self, data):
         return data
