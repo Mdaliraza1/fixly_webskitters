@@ -8,31 +8,44 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# JWT Authentication Class
 class JWTAuthentication(BaseAuthentication):
     def authenticate(self, request):
         auth_header = get_authorization_header(request).split()
+
+        if not auth_header or auth_header[0].lower() != b'bearer':
+            raise AuthenticationFailed('Authorization header must start with Bearer')
 
         if len(auth_header) != 2:
             raise AuthenticationFailed('Authorization header is malformed')
 
         try:
-            token = auth_header[1].decode('utf-8')  # Decode bytes to str
+            token = auth_header[1].decode('utf-8')
             print(f'Token received from client: {token}')
         except UnicodeDecodeError:
             raise AuthenticationFailed('Invalid token encoding')
 
+        user = None
         try:
+            # Try to decode as access token first
             user_id = decode_access_token(token)
             user = User.objects.get(pk=user_id)
+        except AuthenticationFailed as e:
+            # If access token expired, try refresh token
+            if 'expired' in str(e).lower():
+                try:
+                    user_id = decode_refresh_token(token)
+                    user = User.objects.get(pk=user_id)
+                except Exception as refresh_exc:
+                    raise AuthenticationFailed(f'Token validation error: {str(refresh_exc)}')
+            else:
+                # Any other access token error
+                raise AuthenticationFailed(f'Token validation error: {str(e)}')
         except User.DoesNotExist:
             raise AuthenticationFailed('User not found')
-        except Exception as e:
-            raise AuthenticationFailed(f'Token validation error: {str(e)}')
 
         return (user, {'is_admin': user.is_superuser})
 
-# Access Token Creation (Extended Expiry Time)
+
 def create_access_token(user_id):
     payload = {
         'user_id': user_id,
@@ -45,17 +58,19 @@ def create_access_token(user_id):
         token = token.decode('utf-8')
     return token
 
+
 def decode_access_token(token):
     try:
         secret_key = os.getenv('JWT_SECRET_KEY', 'default_secret')
         payload = jwt.decode(token, secret_key, algorithms=['HS256'])
         return payload['user_id']
     except jwt.ExpiredSignatureError:
-        raise AuthenticationFailed('Token has expired')
+        raise AuthenticationFailed('Access token has expired')
     except jwt.InvalidTokenError:
-        raise AuthenticationFailed('Invalid token')
+        raise AuthenticationFailed('Invalid access token')
     except Exception as e:
-        raise AuthenticationFailed(f'Error decoding token: {str(e)}')
+        raise AuthenticationFailed(f'Error decoding access token: {str(e)}')
+
 
 def create_refresh_token(user_id):
     payload = {
@@ -69,11 +84,11 @@ def create_refresh_token(user_id):
         token = token.decode('utf-8')
     return token
 
+
 def decode_refresh_token(token):
     try:
         refresh_secret = os.getenv('JWT_REFRESH_SECRET_KEY', 'default_secret')
         payload = jwt.decode(token, refresh_secret, algorithms=['HS256'])
-        print(f'payload: {payload}')
         return payload['user_id']
     except jwt.ExpiredSignatureError:
         raise AuthenticationFailed('Refresh token has expired')
