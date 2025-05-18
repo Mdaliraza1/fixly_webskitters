@@ -104,18 +104,23 @@ class UserAPIView(APIView):
 
 
 # User Update View
-class UserUpdateView(APIView):
+from django.db import transaction
+
+class BaseUpdateView(APIView):
+    serializer_class = None  
+
+    @transaction.atomic
     def patch(self, request: Request):
-        # your existing patch code
-        refresh_token = request.data.get('refresh_token') or request.COOKIES.get('refresh_token')
         user = request.user
-        serializer = UserUpdateSerializer(user, data=request.data, partial=True)
+        serializer = self.serializer_class(user, data=request.data, partial=True)
 
         if serializer.is_valid():
             serializer.save()
 
             access_token = create_access_token(user.id)
             refresh_token = create_refresh_token(user.id)
+
+            UserToken.objects.filter(user=user, expired_at__gt=timezone.now()).update(expired_at=timezone.now())
 
             UserToken.objects.create(
                 user=user,
@@ -132,35 +137,12 @@ class UserUpdateView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-
-class ProviderUpdateView(APIView):
-    def patch(self, request: Request):
-        refresh_token = request.data.get('refresh_token') or request.COOKIES.get('refresh_token')
-        user = request.user
-        serializer = ServiceProviderUpdateSerializer(user, data=request.data, partial=True)
-
-        if serializer.is_valid():
-            serializer.save()
-
-            # Create new tokens after update
-            access_token = create_access_token(user.id)
-            refresh_token = create_refresh_token(user.id)
-
-            UserToken.objects.create(
-                user=user,
-                token=refresh_token,
-                expired_at=timezone.now() + timedelta(days=7)
-            )
-
-            return Response({
-                'user': serializer.data,
-                'access_token': access_token,
-                'refresh_token': refresh_token
-            }, status=status.HTTP_200_OK)
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+class UserUpdateView(BaseUpdateView):
+    serializer_class = UserUpdateSerializer
 
 
+class ProviderUpdateView(BaseUpdateView):
+    serializer_class = ServiceProviderUpdateSerializer
 
 # Login API
 class LoginAPIView(APIView):
