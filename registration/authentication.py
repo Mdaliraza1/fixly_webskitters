@@ -6,6 +6,7 @@ from rest_framework.exceptions import AuthenticationFailed
 from registration.models import User
 from dotenv import load_dotenv
 import os
+
 load_dotenv()
 
 class JWTAuthentication(BaseAuthentication):
@@ -18,6 +19,7 @@ class JWTAuthentication(BaseAuthentication):
             token = auth_header[1].decode('utf-8')
         except UnicodeDecodeError:
             raise AuthenticationFailed('Invalid token encoding.')
+
         try:
             user_id = decode_access_token(token)
             user = User.objects.get(pk=user_id)
@@ -25,13 +27,13 @@ class JWTAuthentication(BaseAuthentication):
             raise AuthenticationFailed('User not found.')
         except Exception as e:
             raise AuthenticationFailed(f'Token validation error: {str(e)}')
-        return (user, {'is_admin': user.is_superuser})  
+
+        return (user, {'is_admin': user.is_superuser})
 
 
-
-def create_access_token(id):
+def create_access_token(user_id):
     payload = {
-        'user_id': id,
+        'user_id': user_id,
         'iat': datetime.now(timezone.utc),
         'exp': datetime.now(timezone.utc) + timedelta(seconds=30),  # 30 seconds expiry
     }
@@ -52,7 +54,7 @@ def decode_access_token(token):
 
 def create_refresh_token(user_id):
     payload = {
-        'user_id': id,
+        'user_id': user_id,  # Fixed here: use user_id, not id
         'iat': datetime.now(timezone.utc),
         'exp': datetime.now(timezone.utc) + timedelta(days=7),  # 7 days expiry
     }
@@ -61,11 +63,11 @@ def create_refresh_token(user_id):
     token = jwt.encode(payload, secret_key, algorithm=algorithm)
     return token
 
+
 def decode_refresh_token(token):
     try:
-        refresh_secret = os.getenv('JWT_REFRESH_SECRET_KEY', 'default_secret') 
-        payload = jwt.decode(token, refresh_secret, algorithms='HS256')
-        print(f'payload: {payload}')
+        refresh_secret = os.getenv('JWT_REFRESH_SECRET_KEY', 'default_secret')
+        payload = jwt.decode(token, refresh_secret, algorithms=['HS256'])
         return payload['user_id']
-    except:
-        raise exceptions.AuthenticationFailed('unauthenticated')
+    except Exception:
+        raise exceptions.AuthenticationFailed('Unauthenticated')
