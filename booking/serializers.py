@@ -3,8 +3,12 @@ from .models import Booking
 from registration.models import User
 from django.utils import timezone
 from rest_framework.response import Response
-from registration.authentication import decode_refresh_token 
 from registration.models import UserToken   
+from rest_framework import serializers
+from booking.models import Booking
+from django.utils import timezone
+from datetime import time, date
+
 class BookingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Booking
@@ -12,29 +16,35 @@ class BookingSerializer(serializers.ModelSerializer):
         read_only_fields = ['user']
 
     def validate(self, data):
-        # Validate time slot: must be on the hour from 10:00 to 17:00 (last booking 5-6pm)
+        date = data.get('date')
         slot = data.get('time_slot')
-        if slot.hour < 10 or slot.hour > 17 or slot.minute != 0 or slot.second != 0:
+        service_provider = data.get('service_provider')
+        user = self.context.get('user')
+
+        # ✅ Prevent booking in the past
+        today = timezone.localdate()
+        if date < today:
+            raise serializers.ValidationError("You cannot book a service in the past.")
+
+        # ✅ Validate time slot: on the hour from 10:00 to 17:00
+        if slot < time(10, 0) or slot > time(17, 0) or slot.minute != 0 or slot.second != 0:
             raise serializers.ValidationError("Time slot must be on the hour from 10:00 to 17:00.")
 
-        # Prevent user from booking themselves as service provider
-        user = self.context.get('user') or self.initial_data.get('user')
-        service_provider = data.get('service_provider')
+        # ✅ Prevent booking yourself
         if user and service_provider and user == service_provider:
             raise serializers.ValidationError("You cannot book yourself as the service provider.")
 
-        # Check if this slot is already booked
+        # ✅ Prevent double booking
         if Booking.objects.filter(
             service_provider=service_provider,
-            date=data.get('date'),
+            date=date,
             time_slot=slot
         ).exists():
             raise serializers.ValidationError("This time slot is already booked.")
-
         return data
-
-from rest_framework import serializers
-from .models import Booking
+    def create(self, validated_data):
+        validated_data['user'] = self.context['user']
+        return super().create(validated_data)
 
 class UserBookingSerializer(serializers.ModelSerializer):
     service_provider_id = serializers.IntegerField(source='service_provider.id')
@@ -82,9 +92,13 @@ class AvailableSlotsSerializer(serializers.Serializer):
     def validate_service_provider_id(self, value):
         try:
             user = User.objects.get(pk=value)
-            # Assuming user_type is a field to distinguish service providers from customers
             if user.user_type != "SERVICE_PROVIDER":
-                raise serializers.ValidationError("The provided ID is not a valid service provider.")
+                raise serializers.ValidationError("The provided ID does not belong to a service provider.")
         except User.DoesNotExist:
             raise serializers.ValidationError("Service provider not found.")
+        return value
+
+    def validate_date(self, value):
+        if value < date.today():
+            raise serializers.ValidationError("Date cannot be in the past.")
         return value

@@ -2,7 +2,7 @@ from django.utils import timezone
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from datetime import time
+from datetime import time, date
 from django.db import IntegrityError
 
 from registration.models import User, UserToken
@@ -143,26 +143,24 @@ class AvailableSlotsView(APIView):
             date = serializer.validated_data['date']
             service_provider_id = serializer.validated_data['service_provider_id']
 
-            # Fetch already booked 1-hour slots
-            booked_slots = list(Booking.objects.filter(
+            # Already booked time slots
+            booked_slots = Booking.objects.filter(
                 date=date,
                 service_provider_id=service_provider_id
-            ).values_list('time_slot', flat=True))
+            ).values_list('time_slot', flat=True)
 
-            # Define 1-hour slots: 10:00 AM to 6:00 PM (last slot 5-6 PM)
+            # 1-hour slots from 10:00 AM to 5:00 PM
             all_slots = [time(hour=h) for h in range(10, 18)]
 
-            # Filter out booked slots
             available_slots = [
-                slot.strftime("%H:%M:%S") for slot in all_slots if slot not in booked_slots
+                slot.strftime("%H:%M:%S")
+                for slot in all_slots
+                if slot not in booked_slots
             ]
 
-            return Response(
-                {
-                    "message": "Available slots retrieved successfully",
-                    "available_slots": available_slots
-                },
-                status=status.HTTP_200_OK
-            )
+            return Response({
+                "message": "Available slots retrieved successfully",
+                "available_slots": available_slots
+            }, status=status.HTTP_200_OK)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
