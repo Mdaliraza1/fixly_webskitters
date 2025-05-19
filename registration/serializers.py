@@ -22,8 +22,15 @@ contact_validator = RegexValidator(
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
+<<<<<<< HEAD
         fields = ['id', 'first_name', 'last_name', 'email', 'password']
         extra_kwargs = {
+=======
+        fields = ['id', 'first_name', 'last_name', 'email', 'password','user_type', 'contact',]
+        
+        extra_kwargs = {        # This allows the password field to be included in requests but excluded from responses.
+            'username': {'required': False},
+>>>>>>> 4c1e9cdc466586eb427255c2211e92e8da1daf51
             'password': {'write_only': True}
         }
 
@@ -188,7 +195,13 @@ class UserUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['first_name', 'last_name', 'contact', 'gender', 'location']
+        fields = ['first_name', 'last_name', 'contact', 'gender','email']  
+
+    def validate(self, data):
+        user = self.instance
+        if user.user_type != 'USER':
+            raise serializers.ValidationError("Only customers can update this profile.")
+        return data
 
     def update(self, instance, validated_data):
         for attr, value in validated_data.items():
@@ -205,12 +218,24 @@ class ServiceProviderUpdateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
+<<<<<<< HEAD
         fields = ['first_name', 'last_name', 'contact', 'gender', 'category']
 
     def validate(self, data):
         user = self.instance
         category = data.get('category') or user.category
         if user.user_type == 'SERVICE_PROVIDER' and not category:
+=======
+        fields = ['first_name', 'last_name', 'contact', 'gender','email', 'location']
+
+    def validate(self, data):
+        user = self.instance
+        if user.user_type != 'SERVICE_PROVIDER':
+            raise serializers.ValidationError("Only service providers can update this profile.")
+
+        category = data.get('category') or getattr(user, 'category', None)
+        if not category:
+>>>>>>> 4c1e9cdc466586eb427255c2211e92e8da1daf51
             raise serializers.ValidationError("Category is required for service providers.")
         return data
 

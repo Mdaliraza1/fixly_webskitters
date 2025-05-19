@@ -1,5 +1,8 @@
 from rest_framework import permissions, status
+<<<<<<< HEAD
 from rest_framework.permissions import IsAuthenticated
+=======
+>>>>>>> 4c1e9cdc466586eb427255c2211e92e8da1daf51
 from django.shortcuts import render
 from datetime import timedelta
 from django.utils import timezone
@@ -25,6 +28,10 @@ from .authentication import (
     create_refresh_token, 
     decode_refresh_token
 )
+<<<<<<< HEAD
+=======
+from .authentication import create_access_token, create_refresh_token, decode_refresh_token
+>>>>>>> 4c1e9cdc466586eb427255c2211e92e8da1daf51
 
 # Index View (optional frontend landing)
 def index(request):
@@ -73,9 +80,83 @@ class ServiceProviderRegistrationView(APIView):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
+<<<<<<< HEAD
 # ---------------------- Login and Logout ---------------------- #
 
 # Login View
+=======
+# User Profile View
+class UserAPIView(APIView):
+    def post(self, request):
+        # Get refresh_token from POST body or cookies
+        refresh_token = request.data.get('refresh_token') or request.COOKIES.get('refresh_token')
+        if not refresh_token:
+            return Response({'detail': 'Refresh token required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user_id = decode_refresh_token(refresh_token)
+            user = User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            return Response({'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'detail': f'Token validation error: {str(e)}'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        serializer = UserSerializer(user)
+        is_admin = user.is_superuser
+
+        return Response({
+            'user': serializer.data,
+            'is_admin': is_admin,
+        }, status=status.HTTP_200_OK)
+# User Update View
+class UserUpdateView(APIView):
+    def patch(self, request):
+        refresh_token = request.data.get('refresh_token') or request.COOKIES.get('refresh_token')
+        if not refresh_token:
+            return Response({'detail': 'Refresh token required'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            user_id = decode_refresh_token(refresh_token)
+            user = User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            return Response({'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'detail': f'Token validation error: {str(e)}'}, status=status.HTTP_401_UNAUTHORIZED)
+        if user.user_type != 'USER':
+            return Response({'error': 'Only customers can access this route.'}, status=status.HTTP_403_FORBIDDEN)
+
+        serializer = UserUpdateSerializer(user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({'message': 'Customer profile updated successfully.', 'user': serializer.data}, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ProviderUpdateView(APIView):
+    def patch(self, request):
+        refresh_token = request.data.get('refresh_token') or request.COOKIES.get('refresh_token')
+        if not refresh_token:
+            return Response({'detail': 'Refresh token is required'}, status=status.HTTP_401_UNAUTHORIZED)
+        try:
+            user_id = decode_refresh_token(refresh_token)
+            user = User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            return Response({'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'detail': f'Token validation error: {str(e)}'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        if user.user_type != 'SERVICE_PROVIDER':
+            return Response({'error': 'Only service providers can access this route.'}, status=status.HTTP_403_FORBIDDEN)
+
+        serializer = ServiceProviderUpdateSerializer(user, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({'message': 'Service provider profile updated successfully.', 'user': serializer.data}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+# Login API
+>>>>>>> 4c1e9cdc466586eb427255c2211e92e8da1daf51
 class LoginAPIView(APIView):
     permission_classes = [permissions.AllowAny]
 
@@ -136,24 +217,39 @@ class RefreshAPIView(APIView):
 
         try:
             user_id = decode_refresh_token(refresh_token)
+<<<<<<< HEAD
             user = User.objects.get(pk=user_id)
 
+=======
+            user = User.objects.filter(pk=user_id).first()
+>>>>>>> 4c1e9cdc466586eb427255c2211e92e8da1daf51
             token_obj = UserToken.objects.filter(
                 user=user,
                 token=refresh_token,
                 expired_at__gt=timezone.now()
             ).first()
+<<<<<<< HEAD
 
             if not token_obj:
                 return Response({'error': 'Invalid or expired refresh token'}, status=401)
 
+=======
+            if not token_obj:
+                return Response({'error': 'User not found'}, status=404)
+>>>>>>> 4c1e9cdc466586eb427255c2211e92e8da1daf51
         except User.DoesNotExist:
             return Response({'error': 'User not found'}, status=404)
         except Exception as e:
             return Response({'error': f'Invalid token: {str(e)}'}, status=401)
+<<<<<<< HEAD
 
         token_obj.delete()
+=======
+>>>>>>> 4c1e9cdc466586eb427255c2211e92e8da1daf51
 
+        # Invalidate the old token
+        token_obj.delete()
+        # Create new access and refresh tokens
         new_access_token = create_access_token(user.id)
         new_refresh_token = create_refresh_token(user.id)
 

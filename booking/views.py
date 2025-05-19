@@ -4,53 +4,49 @@ from rest_framework import status
 from datetime import time
 from .models import Booking
 from .serializers import BookingSerializer, AvailableSlotsSerializer
-from registration.models import User, UserToken
+from registration.models import User
 from registration.authentication import decode_refresh_token
-
-
-def get_user_from_refresh_token(request):
-    token = request.data.get('refresh_token') or request.COOKIES.get('refresh_token')
-    if not token:
-        return None, Response({'error': 'Refresh token not provided'}, status=400)
-
-    try:
-        user_id = decode_refresh_token(token)
-        user = User.objects.get(pk=user_id)
-        token_obj = UserToken.objects.filter(user=user, token=token).first()
-        if not token_obj:
-            return None, Response({'error': 'Invalid or expired refresh token'}, status=401)
-        return user, None
-    except User.DoesNotExist:
-        return None, Response({'error': 'User not found'}, status=404)
-    except Exception as e:
-        return None, Response({'error': f'Token error: {str(e)}'}, status=401)
-
+from django.db import IntegrityError
 
 class CreateBookingView(APIView):
     def post(self, request):
-        user = get_user_from_refresh_token(request)
-        if user.user_type == "Service_provider":
-            return Response(
-                {"detail": "You are not allowed to access this resource as a service provider."},
-                status=status.HTTP_403_FORBIDDEN)
-        data = request.data.copy()
-        print(f"Payload: {data}")  
+        refresh_token = request.data.get('refresh_token') or request.COOKIES.get('refresh_token')
+        if not refresh_token:
+            return Response({'detail': 'Refresh token required'}, status=status.HTTP_400_BAD_REQUEST)
 
-        serializer = BookingSerializer(data=data)
+        try:
+            user_id = decode_refresh_token(refresh_token)
+            user = User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            return Response({'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'detail': f'Token validation error: {str(e)}'}, status=status.HTTP_401_UNAUTHORIZED)
+
+        data = request.data.copy()
+        serializer = BookingSerializer(data=data, context={'user': user})
         if serializer.is_valid():
-            print("Serializer is valid. Saving booking.")
-            serializer.save(user=user) 
-            return Response(serializer.data,  status=status.HTTP_201_CREATED)
+            try:
+                serializer.save(user=user)
+                return Response(serializer.data, status=status.HTTP_201_CREATED)
+            except IntegrityError:
+                return Response({'detail': 'This time slot is already booked.'}, status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class UserBookingsView(APIView):
     def post(self, request):  # Using POST to send refresh_token
-        user, error_response = get_user_from_refresh_token(request)
-        if error_response:
-            return error_response
+        refresh_token = request.data.get('refresh_token') or request.COOKIES.get('refresh_token')
+        if not refresh_token:
+            return Response({'detail': 'Refresh token required'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            user_id = decode_refresh_token(refresh_token)
+            user = User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            return Response({'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'detail': f'Token validation error: {str(e)}'}, status=status.HTTP_401_UNAUTHORIZED)
 
-        if user.user_type == "SERVICE_POVIDER":
+        if user.user_type == "SERVICE_PROVIDER":
             return Response(
                 {"detail": "You are not allowed to access this resource as a service provider."},
                 status=status.HTTP_403_FORBIDDEN
@@ -68,11 +64,17 @@ class UserBookingsView(APIView):
 
 
 class ServiceProviderBookingsView(APIView):
-    def post(self, request):  # Using POST to send refresh_token
-        user, error_response = get_user_from_refresh_token(request)
-        if error_response:
-            return error_response
-
+    def post(self, request):
+        refresh_token = request.data.get('refresh_token') or request.COOKIES.get('refresh_token')
+        if not refresh_token:
+            return Response({'detail': 'Refresh token required'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            user_id = decode_refresh_token(refresh_token)
+            user = User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            return Response({'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'detail': f'Token validation error: {str(e)}'}, status=status.HTTP_401_UNAUTHORIZED)
         if user.user_type == "CUSTOMER":
             return Response(
                 {"detail": "You are not allowed to access this resource as a Customer."},
@@ -91,10 +93,18 @@ class ServiceProviderBookingsView(APIView):
 
 
 class AvailableSlotsView(APIView):
-    def post(self, request):  # Using POST to send refresh_token and params
-        user, error_response = get_user_from_refresh_token(request)
-        if error_response:
-            return error_response
+    def post(self, request):
+        refresh_token = request.data.get('refresh_token') or request.COOKIES.get('refresh_token')
+        if not refresh_token:
+            return Response({'detail': 'Refresh token required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user_id = decode_refresh_token(refresh_token)
+            user = User.objects.get(pk=user_id)
+        except User.DoesNotExist:
+            return Response({'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'detail': f'Token validation error: {str(e)}'}, status=status.HTTP_401_UNAUTHORIZED)
 
         serializer = AvailableSlotsSerializer(data=request.data)
         if serializer.is_valid():
@@ -107,10 +117,10 @@ class AvailableSlotsView(APIView):
                 service_provider_id=service_provider_id
             ).values_list('time_slot', flat=True))
 
-            # Define 1-hour slots: 10:00 AM to 6:00 PM (last slot at 5 PM to 6 PM)
+            # Define 1-hour slots: 10:00 AM to 6:00 PM (last slot 5-6 PM)
             all_slots = [time(hour=h) for h in range(10, 18)]
 
-            # Filter out booked ones
+            # Filter out booked slots
             available_slots = [
                 slot.strftime("%H:%M") for slot in all_slots if slot not in booked_slots
             ]
