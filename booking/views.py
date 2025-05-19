@@ -9,7 +9,7 @@ from registration.models import User, UserToken
 from registration.authentication import decode_refresh_token
 
 from .models import Booking
-from .serializers import BookingSerializer, AvailableSlotsSerializer
+from .serializers import BookingSerializer, AvailableSlotsSerializer, UserBookingSerializer, ProviderBookingSerializer
 
 
 class CreateBookingView(APIView):
@@ -70,7 +70,8 @@ class UserBookingsView(APIView):
             )
 
         bookings = Booking.objects.filter(user=user)
-        serializer = BookingSerializer(bookings, many=True)
+        serializer = UserBookingSerializer(bookings, many=True)
+
         return Response(
             {
                 "message": "Bookings retrieved successfully",
@@ -107,7 +108,7 @@ class ServiceProviderBookingsView(APIView):
             )
 
         bookings = Booking.objects.filter(service_provider=user)
-        serializer = BookingSerializer(bookings, many=True)
+        serializer = ProviderBookingSerializer(bookings, many=True)
         return Response(
             {
                 "message": "Bookings retrieved successfully",

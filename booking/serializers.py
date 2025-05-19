@@ -1,7 +1,10 @@
 from rest_framework import serializers
 from .models import Booking
 from registration.models import User
-
+from django.utils import timezone
+from rest_framework.response import Response
+from registration.authentication import decode_refresh_token 
+from registration.models import UserToken   
 class BookingSerializer(serializers.ModelSerializer):
     class Meta:
         model = Booking
@@ -30,7 +33,48 @@ class BookingSerializer(serializers.ModelSerializer):
 
         return data
 
+from rest_framework import serializers
+from .models import Booking
 
+class UserBookingSerializer(serializers.ModelSerializer):
+    service_provider_id = serializers.IntegerField(source='service_provider.id')
+    service_provider_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Booking
+        fields = [
+            'id',
+            'date',
+            'time_slot',
+            'service_provider_id',
+            'service_provider_name',
+        ]
+
+    def get_service_provider_name(self, obj):
+        provider = obj.service_provider
+        if provider:
+            return f"{provider.first_name} {provider.last_name}"
+        return None
+
+class ProviderBookingSerializer(serializers.ModelSerializer):
+    customer_id = serializers.IntegerField(source='user.id')
+    customer_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Booking
+        fields = [
+            'id',
+            'date',
+            'time_slot',
+            'customer_id',
+            'customer_name',
+        ]
+
+    def get_customer_name(self, obj):
+        customer = obj.user
+        if customer:
+            return f"{customer.first_name} {customer.last_name}"
+        return None
 class AvailableSlotsSerializer(serializers.Serializer):
     date = serializers.DateField()
     service_provider_id = serializers.IntegerField()
