@@ -3,9 +3,9 @@ from rest_framework import serializers
 from django.core.validators import RegexValidator
 from .models import User
 
-# =======================
+
 # Regex Validators
-# =======================
+
 contact_regex = r'^[1-9]\d{9}$'
 email_regex = r'^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$'
 password_regex = r'^(?=.*[A-Z])(?=.*[0-9])(?=.*[^a-zA-Z0-9\s]).{8,}$'
@@ -16,28 +16,20 @@ contact_validator = RegexValidator(
 )
 
 
-# =======================
-# General User Serializer
-# =======================
+# User Serializer
+
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-<<<<<<< HEAD
         fields = ['id', 'first_name', 'last_name', 'email', 'password']
         extra_kwargs = {
-=======
-        fields = ['id', 'first_name', 'last_name', 'email', 'password','user_type', 'contact',]
-        
-        extra_kwargs = {        # This allows the password field to be included in requests but excluded from responses.
-            'username': {'required': False},
->>>>>>> 4c1e9cdc466586eb427255c2211e92e8da1daf51
             'password': {'write_only': True}
         }
 
 
-# =======================
+
 # Provider Info Serializer
-# =======================
+
 class ProviderSerializer(serializers.ModelSerializer):
     location_display = serializers.SerializerMethodField()
     category_name = serializers.SerializerMethodField()
@@ -57,9 +49,9 @@ class ProviderSerializer(serializers.ModelSerializer):
         return obj.category.name if obj.category else None
 
 
-# =======================
+
 # Customer Registration Serializer
-# =======================
+
 class CustomerRegistrationSerializer(serializers.ModelSerializer):
     confirm_password = serializers.CharField(write_only=True)
 
@@ -119,9 +111,9 @@ class CustomerRegistrationSerializer(serializers.ModelSerializer):
         return user
 
 
-# =======================
+
 # Service Provider Registration Serializer
-# =======================
+
 class ServiceProviderRegistrationSerializer(serializers.ModelSerializer):
     confirm_password = serializers.CharField(write_only=True)
     category_name = serializers.SerializerMethodField(read_only=True)
@@ -187,9 +179,8 @@ class ServiceProviderRegistrationSerializer(serializers.ModelSerializer):
         return user
 
 
-# =======================
 # Customer Update Serializer
-# =======================
+
 class UserUpdateSerializer(serializers.ModelSerializer):
     contact = serializers.CharField(validators=[contact_validator])
 
@@ -210,22 +201,14 @@ class UserUpdateSerializer(serializers.ModelSerializer):
         return instance
 
 
-# =======================
+
 # Service Provider Update Serializer
-# =======================
+
 class ServiceProviderUpdateSerializer(serializers.ModelSerializer):
     contact = serializers.CharField(validators=[contact_validator])
 
     class Meta:
         model = User
-<<<<<<< HEAD
-        fields = ['first_name', 'last_name', 'contact', 'gender', 'category']
-
-    def validate(self, data):
-        user = self.instance
-        category = data.get('category') or user.category
-        if user.user_type == 'SERVICE_PROVIDER' and not category:
-=======
         fields = ['first_name', 'last_name', 'contact', 'gender','email', 'location']
 
     def validate(self, data):
@@ -235,7 +218,6 @@ class ServiceProviderUpdateSerializer(serializers.ModelSerializer):
 
         category = data.get('category') or getattr(user, 'category', None)
         if not category:
->>>>>>> 4c1e9cdc466586eb427255c2211e92e8da1daf51
             raise serializers.ValidationError("Category is required for service providers.")
         return data
 
@@ -244,4 +226,3 @@ class ServiceProviderUpdateSerializer(serializers.ModelSerializer):
             setattr(instance, attr, value)
         instance.save()
         return instance
-
