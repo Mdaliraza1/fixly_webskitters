@@ -1,169 +1,46 @@
-from django.utils import timezone
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from datetime import time
-from django.db import IntegrityError
-
-from registration.models import User, UserToken
-from registration.authentication import decode_refresh_token
-
+from rest_framework import serializers
 from .models import Booking
-from .serializers import BookingSerializer, AvailableSlotsSerializer
+from registration.models import User
+
+class BookingSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Booking
+        fields = '__all__'
+        read_only_fields = ['user']
+
+    def validate(self, data):
+        # Validate time slot: must be on the hour from 10:00 to 17:00 (last booking 5-6pm)
+        slot = data.get('time_slot')
+        if slot.hour < 10 or slot.hour > 17 or slot.minute != 0 or slot.second != 0:
+            raise serializers.ValidationError("Time slot must be on the hour from 10:00 to 17:00.")
+
+        # Prevent user from booking themselves as service provider
+        user = self.context.get('user') or self.initial_data.get('user')
+        service_provider = data.get('service_provider')
+        if user and service_provider and user == service_provider:
+            raise serializers.ValidationError("You cannot book yourself as the service provider.")
+
+        # Check if this slot is already booked
+        if Booking.objects.filter(
+            service_provider=service_provider,
+            date=data.get('date'),
+            time_slot=slot
+        ).exists():
+            raise serializers.ValidationError("This time slot is already booked.")
+
+        return data
 
 
-class CreateBookingView(APIView):
-    def post(self, request):
-        refresh_token = request.data.get('refresh_token') or request.COOKIES.get('refresh_token')
+class AvailableSlotsSerializer(serializers.Serializer):
+    date = serializers.DateField()
+    service_provider_id = serializers.IntegerField()
 
-        if not refresh_token:
-            return Response({'error': 'Refresh token not provided'}, status=400)
-
+    def validate_service_provider_id(self, value):
         try:
-            user_id = decode_refresh_token(refresh_token)
-            user = User.objects.filter(pk=user_id).first()
-            token_obj = UserToken.objects.filter(
-                user=user,
-                token=refresh_token,
-                expired_at__gt=timezone.now()
-            ).first()
-            if not user or not token_obj:
-                return Response({'error': 'User not found or token expired'}, status=404)
-        except Exception as e:
-            return Response({'error': f'Invalid token: {str(e)}'}, status=401)
-
-        data = request.data.copy()
-        serializer = BookingSerializer(data=data, context={'user': user})
-        if serializer.is_valid():
-            try:
-                serializer.save(user=user)
-                return Response(serializer.data, status=status.HTTP_201_CREATED)
-            except IntegrityError:
-                return Response({'detail': 'This time slot is already booked.'}, status=status.HTTP_400_BAD_REQUEST)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-class UserBookingsView(APIView):
-    def post(self, request):
-        refresh_token = request.data.get('refresh_token') or request.COOKIES.get('refresh_token')
-
-        if not refresh_token:
-            return Response({'error': 'Refresh token not provided'}, status=400)
-
-        try:
-            user_id = decode_refresh_token(refresh_token)
-            user = User.objects.filter(pk=user_id).first()
-            token_obj = UserToken.objects.filter(
-                user=user,
-                token=refresh_token,
-                expired_at__gt=timezone.now()
-            ).first()
-            if not user:
-                return Response({'error': 'User not found'}, status=404)
-            elif not token_obj:
-                return Response({'error': 'Token expired'}, status=401)
-        except Exception as e:
-            return Response({'error': f'Invalid token: {str(e)}'}, status=401)
-
-        if user.user_type == "SERVICE_PROVIDER":
-            return Response(
-                {"detail": "You are not allowed to access this resource as a service provider."},
-                status=status.HTTP_403_FORBIDDEN
-            )
-
-        bookings = Booking.objects.filter(user=user)
-        serializer = BookingSerializer(bookings, many=True)
-        return Response(
-            {
-                "message": "Bookings retrieved successfully",
-                "bookings": serializer.data
-            },
-            status=status.HTTP_200_OK
-        )
-
-
-class ServiceProviderBookingsView(APIView):
-    def post(self, request):
-        refresh_token = request.data.get('refresh_token') or request.COOKIES.get('refresh_token')
-
-        if not refresh_token:
-            return Response({'error': 'Refresh token not provided'}, status=400)
-
-        try:
-            user_id = decode_refresh_token(refresh_token)
-            user = User.objects.filter(pk=user_id).first()
-            token_obj = UserToken.objects.filter(
-                user=user,
-                token=refresh_token,
-                expired_at__gt=timezone.now()
-            ).first()
-            if not user or not token_obj:
-                return Response({'error': 'User not found or token expired'}, status=404)
-        except Exception as e:
-            return Response({'error': f'Invalid token: {str(e)}'}, status=401)
-
-        if user.user_type == "CUSTOMER":
-            return Response(
-                {"detail": "You are not allowed to access this resource as a Customer."},
-                status=status.HTTP_403_FORBIDDEN
-            )
-
-        bookings = Booking.objects.filter(service_provider=user)
-        serializer = BookingSerializer(bookings, many=True)
-        return Response(
-            {
-                "message": "Bookings retrieved successfully",
-                "bookings": serializer.data
-            },
-            status=status.HTTP_200_OK
-        )
-
-
-class AvailableSlotsView(APIView):
-    def post(self, request):
-        refresh_token = request.data.get('refresh_token') or request.COOKIES.get('refresh_token')
-
-        if not refresh_token:
-            return Response({'error': 'Refresh token not provided'}, status=400)
-
-        try:
-            user_id = decode_refresh_token(refresh_token)
-            user = User.objects.filter(pk=user_id).first()
-            token_obj = UserToken.objects.filter(
-                user=user,
-                token=refresh_token,
-                expired_at__gt=timezone.now()
-            ).first()
-            if not user or not token_obj:
-                return Response({'error': 'User not found or token expired'}, status=404)
-        except Exception as e:
-            return Response({'error': f'Invalid token: {str(e)}'}, status=401)
-
-        serializer = AvailableSlotsSerializer(data=request.data)
-        if serializer.is_valid():
-            date = serializer.validated_data['date']
-            service_provider_id = serializer.validated_data['service_provider_id']
-
-            # Fetch already booked slots
-            booked_slots = list(Booking.objects.filter(
-                date=date,
-                service_provider_id=service_provider_id
-            ).values_list('time_slot', flat=True))
-
-            # Define slots: 10:00 AM to 6:00 PM (last slot 5-6 PM)
-            all_slots = [time(hour=h) for h in range(10, 18)]
-
-            # Filter out booked slots
-            available_slots = [
-                slot.strftime("%H:%M:%S") for slot in all_slots if slot not in booked_slots
-            ]
-
-            return Response(
-                {
-                    "message": "Available slots retrieved successfully",
-                    "available_slots": available_slots
-                },
-                status=status.HTTP_200_OK
-            )
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            user = User.objects.get(pk=value)
+            # Assuming user_type is a field to distinguish service providers from customers
+            if user.user_type != "SERVICE_PROVIDER":
+                raise serializers.ValidationError("The provided ID is not a valid service provider.")
+        except User.DoesNotExist:
+            raise serializers.ValidationError("Service provider not found.")
+        return value
