@@ -1,17 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Fixly API Documentation</title>
-  <link
-    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
-    rel="stylesheet"
-  />
-  <link
-    href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css"
-    rel="stylesheet"
-  />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet" />
   <style>
     body {
       background: #f0f2f5;
@@ -20,6 +15,7 @@
       display: flex;
       flex-direction: column;
     }
+
     .header-section {
       background: linear-gradient(90deg, #1e3c72, #2a5298);
       color: #fff;
@@ -27,23 +23,28 @@
       border-radius: 0 0 30px 30px;
       box-shadow: 0 8px 15px rgb(0 0 0 / 0.1);
     }
+
     .header-section h1 {
       font-weight: 700;
       letter-spacing: 1.1px;
       text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.3);
     }
+
     .header-section p {
       font-size: 1.1rem;
       margin-top: 0.8rem;
     }
+
     .header-section a {
       color: #d0e8ff;
       text-decoration: none;
       transition: color 0.3s ease;
     }
+
     .header-section a:hover {
       color: #a9d1ff;
     }
+
     code {
       background-color: #e1ecf4;
       padding: 2px 6px;
@@ -51,26 +52,31 @@
       font-weight: 600;
       font-size: 1.1rem;
     }
+
     .container {
       max-width: 900px;
       margin-top: -60px;
       margin-bottom: 3rem;
       padding: 0 1rem;
     }
+
     .card {
       border-radius: 15px;
       box-shadow: 0 6px 12px rgb(0 0 0 / 0.1);
       transition: transform 0.3s ease, box-shadow 0.3s ease;
     }
+
     .card:hover {
       transform: translateY(-5px);
       box-shadow: 0 12px 24px rgb(0 0 0 / 0.15);
     }
+
     .card-title {
       font-weight: 700;
       font-size: 1.4rem;
       color: #1e3c72;
     }
+
     .section-title {
       font-weight: 700;
       font-size: 1.6rem;
@@ -82,6 +88,7 @@
       gap: 0.6rem;
       text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.1);
     }
+
     .list-group-item {
       font-size: 1.05rem;
       cursor: default;
@@ -95,12 +102,15 @@
       background-color: #fff;
       transition: background-color 0.2s ease;
     }
+
     .list-group-item:last-child {
       border-bottom: none;
     }
+
     .list-group-item:hover {
       background-color: #f7faff;
     }
+
     .list-group-item::before {
       content: "→";
       position: absolute;
@@ -110,19 +120,23 @@
       font-size: 1.2rem;
       transition: transform 0.3s ease;
     }
+
     .list-group-item:hover::before {
       transform: translateX(4px);
       color: #2a5298;
     }
+
     .postman-link a {
       font-weight: 600;
       color: #ff6f61;
       text-decoration: none;
       word-break: break-all;
     }
+
     .postman-link a:hover {
       text-decoration: underline;
     }
+
     .badge-endpoint {
       background-color: #2a5298;
       font-weight: 600;
@@ -132,6 +146,7 @@
       border-radius: 12px;
       color: #fff;
     }
+
     footer {
       margin-top: auto;
       padding: 1rem 0;
@@ -143,20 +158,47 @@
       box-shadow: inset 0 2px 5px rgb(0 0 0 / 0.1);
     }
 
+    .endpoint-method {
+      font-weight: 600;
+      font-size: 0.9rem;
+      padding: 0.15em 0.5em;
+      border-radius: 5px;
+      margin-right: 0.7rem;
+      user-select: none;
+    }
+
+    .endpoint-method.bg-success {
+      background-color: #198754 !important;
+      color: white !important;
+    }
+
+    .endpoint-method.bg-primary {
+      background-color: #0d6efd !important;
+      color: white !important;
+    }
+
+    .endpoint-method.bg-warning {
+      background-color: #ffc107 !important;
+      color: #212529 !important;
+    }
+
     @media (max-width: 575px) {
       .list-group-item {
         font-size: 0.95rem;
         padding-left: 2rem;
       }
+
       .section-title {
         font-size: 1.3rem;
       }
+
       .header-section h1 {
         font-size: 2.2rem;
       }
     }
   </style>
 </head>
+
 <body>
   <header class="header-section text-center">
     <h1>Fixly API Documentation</h1>
@@ -165,13 +207,9 @@
     </p>
     <p>
       <strong>Author:</strong> Md Ali Raza <br />
-      <a href="https://github.com/Mdaliraza1" target="_blank"
-        ><i class="bi bi-github"></i> GitHub</a
-      >
+      <a href="https://github.com/Mdaliraza1" target="_blank"><i class="bi bi-github"></i> GitHub</a>
       &nbsp;|&nbsp;
-      <a href="https://www.linkedin.com/in/mdaliraza1/" target="_blank"
-        ><i class="bi bi-linkedin"></i> LinkedIn</a
-      >
+      <a href="https://www.linkedin.com/in/mdaliraza1/" target="_blank"><i class="bi bi-linkedin"></i> LinkedIn</a>
     </p>
   </header>
 
@@ -182,11 +220,8 @@
           <i class="bi bi-folder2-open-fill me-2" style="color:#ff6f61"></i>Postman Collection
         </h5>
         <p class="card-text postman-link">
-          <a
-            href="https://documenter.getpostman.com/view/44342859/2sB2j7eVGw"
-            target="_blank"
-            >https://documenter.getpostman.com/view/44342859/2sB2j7eVGw</a
-          >
+          <a href="https://documenter.getpostman.com/view/44342859/2sB2j7eVGw"
+            target="_blank">https://documenter.getpostman.com/view/44342859/2sB2j7eVGw</a>
         </p>
       </div>
     </div>
@@ -229,57 +264,93 @@
           <span class="badge-endpoint bg-success rounded-pill">GET</span>
         </li>
         <li class="list-group-item">
-          <span>PUT or PATCH /update/customer/</span>
-          <span class="badge-endpoint bg-warning rounded-pill text-dark">PUT/PATCH</span>
+          <span>PUT /profile/update/</span>
+          <span class="badge-endpoint bg-warning rounded-pill">PUT</span>
         </li>
         <li class="list-group-item">
-          <span>PUT or PATCH /update/provider/</span>
-          <span class="badge-endpoint bg-warning rounded-pill text-dark">PUT/PATCH</span>
+          <span>PUT /profile/change-password/</span>
+          <span class="badge-endpoint bg-warning rounded-pill">PUT</span>
         </li>
       </ul>
     </section>
-
     <section>
       <h3 class="section-title">
-        <i class="bi bi-people-fill" style="color:#2a5298"></i> Service Providers
+        <i class="bi bi-gear-fill" style="color:#2a5298"></i> Services & Providers
       </h3>
       <ul class="list-group shadow-sm rounded">
+        <li class="list-group-item">
+          <span>GET /services/</span>
+          <span class="badge-endpoint bg-success rounded-pill">GET</span>
+        </li>
         <li class="list-group-item">
           <span>GET /providers/</span>
           <span class="badge-endpoint bg-success rounded-pill">GET</span>
         </li>
+        <li class="list-group-item">
+          <span>POST /providers/</span>
+          <span class="badge-endpoint bg-primary rounded-pill">POST</span>
+        </li>
+        <li class="list-group-item">
+          <span>PUT /providers/{id}/</span>
+          <span class="badge-endpoint bg-warning rounded-pill">PUT</span>
+        </li>
+        <li class="list-group-item">
+          <span>PATCH /providers/{id}/</span>
+          <span class="badge-endpoint bg-warning rounded-pill">PATCH</span>
+        </li>
+        <li class="list-group-item">
+          <span>DELETE /providers/{id}/</span>
+          <span class="badge-endpoint bg-danger rounded-pill">DELETE</span>
+        </li>
       </ul>
     </section>
 
     <section>
       <h3 class="section-title">
-        <i class="bi bi-calendar-check-fill" style="color:#2a5298"></i> Booking
+        <i class="bi bi-calendar-check-fill" style="color:#2a5298"></i> Bookings
       </h3>
       <ul class="list-group shadow-sm rounded">
         <li class="list-group-item">
-          <span>POST /booking/create/</span>
-          <span class="badge-endpoint bg-primary rounded-pill">POST</span>
+          <span>GET /bookings/</span>
+          <span class="badge-endpoint bg-success rounded-pill">GET</span>
         </li>
         <li class="list-group-item">
-          <span>POST /booking/my-bookings/</span>
-          <span class="badge-endpoint bg-primary rounded-pill">POST</span>
-        </li>
-        <li class="list-group-item">
-          <span>POST /booking/provider-bookings/</span>
-          <span class="badge-endpoint bg-primary rounded-pill">POST</span>
-        </li>
-        <li class="list-group-item">
-          <span>POST /booking/slots/</span>
+          <span>POST /bookings/</span>
           <span class="badge-endpoint bg-primary rounded-pill">POST</span>
         </li>
       </ul>
     </section>
-  </main>
 
+    <!-- Reviews Section Added Below -->
+    <section>
+      <h3 class="section-title">
+        <i class="bi bi-star-fill" style="color:#2a5298"></i> Reviews
+      </h3>
+      <ul class="list-group shadow-sm rounded">
+        <li class="list-group-item d-flex align-items-center">
+          <span class="endpoint-method bg-primary">POST</span>
+          <span>/review/create/</span>
+        </li>
+        <li class="list-group-item d-flex align-items-center">
+          <span class="endpoint-method bg-success">GET</span>
+          <span>/review/all/</span>
+        </li>
+        <li class="list-group-item d-flex align-items-center">
+          <span class="endpoint-method bg-success">GET</span>
+          <span>/review/all/?provider_id=2</span>
+        </li>
+        <li class="list-group-item d-flex align-items-center">
+          <span class="endpoint-method bg-warning">PUT</span>
+          <span>/review/update/{id}</span>
+        </li>
+      </ul>
+    </section>
+  </main>
   <footer>
     &copy; 2025 Fixly API Documentation — Designed with ❤️ by Md Ali Raza
   </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
+
 </html>
