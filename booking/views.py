@@ -63,7 +63,7 @@ class UserBookingsView(APIView):
         except Exception as e:
             return Response({'error': f'Invalid token: {str(e)}'}, status=401)
 
-        if user.user_type == "SERVICE_PROVIDER":
+        if user.user_type != "USER":
             return Response(
                 {"detail": "You are not allowed to access this resource as a service provider."},
                 status=status.HTTP_403_FORBIDDEN
@@ -101,7 +101,7 @@ class ServiceProviderBookingsView(APIView):
         except Exception as e:
             return Response({'error': f'Invalid token: {str(e)}'}, status=401)
 
-        if user.user_type == "CUSTOMER":
+        if user.user_type != "SERVICE_PROVIDER":
             return Response(
                 {"detail": "You are not allowed to access this resource as a Customer."},
                 status=status.HTTP_403_FORBIDDEN
@@ -154,7 +154,7 @@ class AvailableSlotsView(APIView):
 
             # Filter out booked slots
             available_slots = [
-                slot.strftime("%H:%M") for slot in all_slots if slot not in booked_slots
+                slot.strftime("%H:%M:%S") for slot in all_slots if slot not in booked_slots
             ]
 
             return Response(
