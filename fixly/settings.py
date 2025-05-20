@@ -2,7 +2,6 @@ from pathlib import Path
 from dotenv import load_dotenv
 import os
 
-
 load_dotenv()
 
 # Base directory
@@ -21,12 +20,12 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    #My Apps
+    # My Apps
     'registration.apps.RegistrationConfig',
     'service.apps.ServiceConfig',
     'review.apps.ReviewConfig',
     'booking.apps.BookingConfig',
-    #Installed Apps
+    # Installed Apps
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
@@ -36,8 +35,8 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
+    'corsheaders.middleware.CorsMiddleware',  # corsheaders must be before CommonMiddleware
     'django.middleware.common.CommonMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -107,7 +106,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # JWT Authentication Settings
 REST_FRAMEWORK = {
-  
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
@@ -116,18 +114,20 @@ REST_FRAMEWORK = {
     ),
 }
 
-
-
 # User model configuration
 AUTH_USER_MODEL = 'registration.User'
 
-# CORS
-CORS_ALLOW_ALL_ORIGINS = True       # Any frontend application running on any port can make requests
-CORS_ALLOW_CREDENTIALS = True       # Frontend will get cookies
-
-
-CSRF_TRUSTED_ORIGINS = [
-    'https://fixlywebskitters-production-ebff.up.railway.app/',
+# CORS and CSRF Settings (Updated)
+CORS_ALLOWED_ORIGINS = [
+    "https://fixlywebskitters-production-ebff.up.railway.app",
     "http://localhost:3000",
 ]
+
+CORS_ALLOW_CREDENTIALS = True
+
+CSRF_TRUSTED_ORIGINS = [
+    "https://fixlywebskitters-production-ebff.up.railway.app",
+    "http://localhost:3000",
+]
+
 APPEND_SLASH = False
