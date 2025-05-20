@@ -7,7 +7,7 @@ from rest_framework.request import Request
 from rest_framework.views import APIView
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
-from django.db import transaction
+from django.conf import settings
 
 from .models import User, UserToken
 from .serializers import (
@@ -19,12 +19,10 @@ from .authentication import create_access_token, create_refresh_token, decode_re
 def index(request):
     return render(request, 'index.html')
 
-# Customer Registration View
+
 class CustomerRegistrationView(APIView):
     def post(self, request):
         user = request.data
-        print(f'User data received: {user}')
-        
         if User.objects.filter(email=user.get('email')).exists():
             return Response({'error': 'Email already exists!'}, status=400)
         if user.get('password') != user.get('confirm_password'):
@@ -36,28 +34,24 @@ class CustomerRegistrationView(APIView):
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
-# Service Provider Registration View
 class ServiceProviderRegistrationView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
         user = request.data
-        print(f'User data received: {user}')
         if User.objects.filter(email=user.get('email')).exists():
             return Response({'error': 'Email already exists!'}, status=400)
         if user.get('password') != user.get('confirm_password'):
             return Response({'error': 'Passwords do not match!'}, status=400)
 
-        serializer = ServiceProviderRegistrationSerializer(data=request.data)
+        serializer = ServiceProviderRegistrationSerializer(data=user)
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
-# User Profile View
 class UserAPIView(APIView):
     def post(self, request):
-        # Get refresh_token from POST body or cookies
         refresh_token = request.data.get('refresh_token') or request.COOKIES.get('refresh_token')
         if not refresh_token:
             return Response({'detail': 'Refresh token required'}, status=status.HTTP_400_BAD_REQUEST)
@@ -77,7 +71,8 @@ class UserAPIView(APIView):
             'user': serializer.data,
             'is_admin': is_admin,
         }, status=status.HTTP_200_OK)
-# User Update View
+
+
 class UserUpdateView(APIView):
     def patch(self, request):
         refresh_token = request.data.get('refresh_token') or request.COOKIES.get('refresh_token')
@@ -124,7 +119,7 @@ class ProviderUpdateView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-# Login API
+@method_decorator(csrf_exempt, name='dispatch')
 class LoginAPIView(APIView):
     def post(self, request: Request):
         email = request.data.get('email')
@@ -146,16 +141,24 @@ class LoginAPIView(APIView):
             expired_at=timezone.now() + timedelta(days=7)
         )
 
+        secure_flag = not settings.DEBUG
+
         response = Response({
             'message': 'Successfully logged in!',
             'access_token': access_token,
             'refresh_token': refresh_token
         }, status=200)
-        response.set_cookie(key='refresh_token', value=refresh_token, httponly=True, secure=True,samesite='None')
+        response.set_cookie(
+            key='refresh_token',
+            value=refresh_token,
+            httponly=True,
+            secure=secure_flag,
+            samesite='None'
+        )
         return response
 
 
-# Refresh Token API
+@method_decorator(csrf_exempt, name='dispatch')
 class RefreshAPIView(APIView):
     def post(self, request: Request):
         refresh_token = request.data.get('refresh_token') or request.COOKIES.get('refresh_token')
@@ -172,7 +175,7 @@ class RefreshAPIView(APIView):
                 expired_at__gt=timezone.now()
             ).first()
             if not token_obj:
-                return Response({'error': 'User not found'}, status=404)
+                return Response({'error': 'User not found or token expired'}, status=404)
         except User.DoesNotExist:
             return Response({'error': 'User not found'}, status=404)
         except Exception as e:
@@ -180,6 +183,7 @@ class RefreshAPIView(APIView):
 
         # Invalidate the old token
         token_obj.delete()
+
         # Create new access and refresh tokens
         new_access_token = create_access_token(user.id)
         new_refresh_token = create_refresh_token(user.id)
@@ -190,15 +194,22 @@ class RefreshAPIView(APIView):
             expired_at=timezone.now() + timedelta(days=7)
         )
 
+        secure_flag = not settings.DEBUG
+
         response = Response({
             'access_token': new_access_token,
             'refresh_token': new_refresh_token
         }, status=200)
-        response.set_cookie(key='refresh_token', value=new_refresh_token, httponly=True, secure=True,samesite='None')
+        response.set_cookie(
+            key='refresh_token',
+            value=new_refresh_token,
+            httponly=True,
+            secure=secure_flag,
+            samesite='None'
+        )
         return response
 
 
-# Service Provider List View
 class ServiceProviderListView(APIView):
     permission_classes = [permissions.AllowAny]
 
@@ -216,7 +227,6 @@ class ServiceProviderListView(APIView):
         return Response(serializer.data)
 
 
-# Logout API
 @method_decorator(csrf_exempt, name='dispatch')
 class LogoutAPIView(APIView):
     def post(self, request: Request):
