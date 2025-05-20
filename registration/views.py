@@ -151,7 +151,7 @@ class LoginAPIView(APIView):
             'access_token': access_token,
             'refresh_token': refresh_token
         }, status=200)
-        response.set_cookie(key='refresh_token', value=refresh_token, httponly=True, secure=True)
+        response.set_cookie(key='refresh_token', value=refresh_token, httponly=True, secure=True,samesite='None')
         return response
 
 
@@ -194,7 +194,7 @@ class RefreshAPIView(APIView):
             'access_token': new_access_token,
             'refresh_token': new_refresh_token
         }, status=200)
-        response.set_cookie(key='refresh_token', value=new_refresh_token, httponly=True, secure=True)
+        response.set_cookie(key='refresh_token', value=new_refresh_token, httponly=True, secure=True,samesite='None')
         return response
 
 
