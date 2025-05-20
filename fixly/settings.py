@@ -128,5 +128,6 @@ CORS_ALLOW_CREDENTIALS = True       # Frontend will get cookies
 
 CSRF_TRUSTED_ORIGINS = [
     'https://fixlywebskitters-production-ebff.up.railway.app/',
+    "http://localhost:3000",
 ]
 APPEND_SLASH = False
