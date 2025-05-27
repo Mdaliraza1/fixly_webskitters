@@ -19,72 +19,49 @@ from .authentication import create_access_token, create_refresh_token, decode_re
 def index(request):
     return render(request, 'index.html')
 
+def get_user_from_refresh_token(request):
+    token = request.data.get('refresh_token') or request.COOKIES.get('refresh_token')
+    if not token:
+        raise ValueError('Refresh token required')
+    user_id = decode_refresh_token(token)
+    user = User.objects.get(pk=user_id)
+    return user, token
 
 class CustomerRegistrationView(APIView):
     def post(self, request):
-        user = request.data
-        if User.objects.filter(email=user.get('email')).exists():
-            return Response({'error': 'Email already exists!'}, status=400)
-        if user.get('password') != user.get('confirm_password'):
-            return Response({'error': 'Passwords do not match!'}, status=400)
-
-        serializer = CustomerRegistrationSerializer(data=user)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-
+        serializer = CustomerRegistrationSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({'status': 'success', 'data': serializer.data}, status=status.HTTP_201_CREATED)
+        return Response({'status': 'error', 'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
 class ServiceProviderRegistrationView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def post(self, request):
-        user = request.data
-        if User.objects.filter(email=user.get('email')).exists():
-            return Response({'error': 'Email already exists!'}, status=400)
-        if user.get('password') != user.get('confirm_password'):
-            return Response({'error': 'Passwords do not match!'}, status=400)
-
-        serializer = ServiceProviderRegistrationSerializer(data=user)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
-
+        serializer = ServiceProviderRegistrationSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({'status': 'success', 'data': serializer.data}, status=status.HTTP_201_CREATED)
+        return Response({'status': 'error', 'errors': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
 class UserAPIView(APIView):
     def post(self, request):
-        refresh_token = request.data.get('refresh_token') or request.COOKIES.get('refresh_token')
-        if not refresh_token:
-            return Response({'detail': 'Refresh token required'}, status=status.HTTP_400_BAD_REQUEST)
-
         try:
-            user_id = decode_refresh_token(refresh_token)
-            user = User.objects.get(pk=user_id)
-        except User.DoesNotExist:
-            return Response({'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+            user, _ = get_user_from_refresh_token(request)
         except Exception as e:
-            return Response({'detail': f'Token validation error: {str(e)}'}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response({'detail': str(e)}, status=status.HTTP_401_UNAUTHORIZED)
 
         serializer = UserSerializer(user)
-        is_admin = user.is_superuser
-
-        return Response({
-            'user': serializer.data,
-            'is_admin': is_admin,
-        }, status=status.HTTP_200_OK)
-
+        return Response({'user': serializer.data, 'is_admin': user.is_superuser}, status=status.HTTP_200_OK)
 
 class UserUpdateView(APIView):
     def patch(self, request):
-        refresh_token = request.data.get('refresh_token') or request.COOKIES.get('refresh_token')
-        if not refresh_token:
-            return Response({'detail': 'Refresh token required'}, status=status.HTTP_400_BAD_REQUEST)
         try:
-            user_id = decode_refresh_token(refresh_token)
-            user = User.objects.get(pk=user_id)
-        except User.DoesNotExist:
-            return Response({'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+            user, _ = get_user_from_refresh_token(request)
         except Exception as e:
-            return Response({'detail': f'Token validation error: {str(e)}'}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response({'detail': str(e)}, status=status.HTTP_401_UNAUTHORIZED)
+
         if user.user_type != 'USER':
             return Response({'error': 'Only customers can access this route.'}, status=status.HTTP_403_FORBIDDEN)
 
@@ -92,22 +69,14 @@ class UserUpdateView(APIView):
         if serializer.is_valid():
             serializer.save()
             return Response({'message': 'Customer profile updated successfully.', 'user': serializer.data}, status=status.HTTP_200_OK)
-
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
 
 class ProviderUpdateView(APIView):
     def patch(self, request):
-        refresh_token = request.data.get('refresh_token') or request.COOKIES.get('refresh_token')
-        if not refresh_token:
-            return Response({'detail': 'Refresh token is required'}, status=status.HTTP_401_UNAUTHORIZED)
         try:
-            user_id = decode_refresh_token(refresh_token)
-            user = User.objects.get(pk=user_id)
-        except User.DoesNotExist:
-            return Response({'detail': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
+            user, _ = get_user_from_refresh_token(request)
         except Exception as e:
-            return Response({'detail': f'Token validation error: {str(e)}'}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response({'detail': str(e)}, status=status.HTTP_401_UNAUTHORIZED)
 
         if user.user_type != 'SERVICE_PROVIDER':
             return Response({'error': 'Only service providers can access this route.'}, status=status.HTTP_403_FORBIDDEN)
@@ -118,7 +87,6 @@ class ProviderUpdateView(APIView):
             return Response({'message': 'Service provider profile updated successfully.', 'user': serializer.data}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
 @method_decorator(csrf_exempt, name='dispatch')
 class LoginAPIView(APIView):
     def post(self, request: Request):
@@ -126,28 +94,23 @@ class LoginAPIView(APIView):
         password = request.data.get('password')
 
         if not email or not password:
-            return Response({'error': 'Email and password are required'}, status=400)
+            return Response({'error': 'Email and password are required'}, status=status.HTTP_400_BAD_REQUEST)
 
         user = User.objects.filter(email=email).first()
         if not user or not user.check_password(password):
-            return Response({'error': 'Invalid email or password'}, status=401)
+            return Response({'error': 'Invalid email or password'}, status=status.HTTP_401_UNAUTHORIZED)
 
         access_token = create_access_token(user.id)
         refresh_token = create_refresh_token(user.id)
 
-        UserToken.objects.create(
-            user=user,
-            token=refresh_token,
-            expired_at=timezone.now() + timedelta(days=7)
-        )
+        UserToken.objects.create(user=user, token=refresh_token, expired_at=timezone.now() + timedelta(days=7))
 
         secure_flag = not settings.DEBUG
-
         response = Response({
             'message': 'Successfully logged in!',
             'access_token': access_token,
             'refresh_token': refresh_token
-        }, status=200)
+        }, status=status.HTTP_200_OK)
         response.set_cookie(
             key='refresh_token',
             value=refresh_token,
@@ -157,49 +120,28 @@ class LoginAPIView(APIView):
         )
         return response
 
-
 @method_decorator(csrf_exempt, name='dispatch')
 class RefreshAPIView(APIView):
     def post(self, request: Request):
-        refresh_token = request.data.get('refresh_token') or request.COOKIES.get('refresh_token')
-
-        if not refresh_token:
-            return Response({'error': 'Refresh token not provided'}, status=400)
-
         try:
-            user_id = decode_refresh_token(refresh_token)
-            user = User.objects.filter(pk=user_id).first()
-            token_obj = UserToken.objects.filter(
-                user=user,
-                token=refresh_token,
-                expired_at__gt=timezone.now()
-            ).first()
+            user, old_token = get_user_from_refresh_token(request)
+            token_obj = UserToken.objects.filter(user=user, token=old_token, expired_at__gt=timezone.now()).first()
             if not token_obj:
-                return Response({'error': 'User not found or token expired'}, status=404)
-        except User.DoesNotExist:
-            return Response({'error': 'User not found'}, status=404)
+                return Response({'error': 'User not found or token expired'}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
-            return Response({'error': f'Invalid token: {str(e)}'}, status=401)
+            return Response({'error': str(e)}, status=status.HTTP_401_UNAUTHORIZED)
 
-        # Invalidate the old token
         token_obj.delete()
-
-        # Create new access and refresh tokens
         new_access_token = create_access_token(user.id)
         new_refresh_token = create_refresh_token(user.id)
 
-        UserToken.objects.create(
-            user=user,
-            token=new_refresh_token,
-            expired_at=timezone.now() + timedelta(days=7)
-        )
+        UserToken.objects.create(user=user, token=new_refresh_token, expired_at=timezone.now() + timedelta(days=7))
 
         secure_flag = not settings.DEBUG
-
         response = Response({
             'access_token': new_access_token,
             'refresh_token': new_refresh_token
-        }, status=200)
+        }, status=status.HTTP_200_OK)
         response.set_cookie(
             key='refresh_token',
             value=new_refresh_token,
@@ -209,34 +151,30 @@ class RefreshAPIView(APIView):
         )
         return response
 
-
 class ServiceProviderListView(APIView):
     permission_classes = [permissions.AllowAny]
 
     def get(self, request):
-        queryset = User.objects.filter(user_type='SERVICE_PROVIDER')
+        filters = {'user_type': 'SERVICE_PROVIDER'}
         category = request.query_params.get('category')
         location = request.query_params.get('location')
-
         if category:
-            queryset = queryset.filter(category=category)
+            filters['category'] = category
         if location:
-            queryset = queryset.filter(location=location)
+            filters['location'] = location
 
+        queryset = User.objects.filter(**filters)
         serializer = ProviderSerializer(queryset, many=True)
-        return Response(serializer.data)
-
+        return Response({'providers': serializer.data}, status=status.HTTP_200_OK)
 
 @method_decorator(csrf_exempt, name='dispatch')
 class LogoutAPIView(APIView):
     def post(self, request: Request):
-        refresh_token = request.data.get('refresh_token') or request.COOKIES.get('refresh_token')
+        token = request.data.get('refresh_token') or request.COOKIES.get('refresh_token')
+        if not token:
+            return Response({'error': 'Refresh token missing'}, status=status.HTTP_400_BAD_REQUEST)
 
-        if not refresh_token:
-            return Response({'error': 'Refresh token missing'}, status=400)
-
-        UserToken.objects.filter(token=refresh_token).delete()
-
-        response = Response({'status': 'success', 'message': 'Logged out successfully'}, status=200)
+        UserToken.objects.filter(token=token).delete()
+        response = Response({'status': 'success', 'message': 'Logged out successfully'}, status=status.HTTP_200_OK)
         response.delete_cookie(key='refresh_token')
         return response
