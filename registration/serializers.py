@@ -51,7 +51,7 @@ class ProviderSerializer(serializers.ModelSerializer):
         ]
 
     def get_location_display(self, obj):
-        return obj.get_location_display() if obj.location else None
+        return obj.location if obj.location else None
 
     def get_category_name(self, obj):
         return obj.category.category if obj.category else None
