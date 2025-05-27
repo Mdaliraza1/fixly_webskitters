@@ -5,7 +5,6 @@ import re
 from django.core.validators import RegexValidator
 
 
-
 def validate_email_format(email):
     if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
         raise serializers.ValidationError("Invalid email format.")
@@ -16,6 +15,8 @@ def validate_password_strength(password):
         raise serializers.ValidationError("Password must be at least 8 characters long.")
     if not re.search(r'[A-Z]', password):
         raise serializers.ValidationError("Password must include at least one uppercase letter.")
+    if not re.search(r"[,\./\?;'!@#$%&*~]", password):
+        raise serializers.ValidationError("Password must include at least one special character: ,./?;'!@#$%&*~")
     if not re.search(r'[a-z]', password):
         raise serializers.ValidationError("Password must include at least one lowercase letter.")
     if not re.search(r'\d', password):
@@ -28,9 +29,7 @@ def validate_contact_format(contact):
     return contact
 
 
-
 # User Serializer
-
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -38,10 +37,7 @@ class UserSerializer(serializers.ModelSerializer):
         extra_kwargs = {'password': {'write_only': True}}
 
 
-
 # Provider Info Display Serializer
-
-
 class ProviderSerializer(serializers.ModelSerializer):
     location_display = serializers.SerializerMethodField()
     category_name = serializers.SerializerMethodField()
@@ -58,12 +54,10 @@ class ProviderSerializer(serializers.ModelSerializer):
         return obj.get_location_display() if obj.location else None
 
     def get_category_name(self, obj):
-        return obj.category.name if obj.category else None
-
+        return obj.category.category if obj.category else None
 
 
 # Customer Registration Serializer
-
 class CustomerRegistrationSerializer(serializers.ModelSerializer):
     confirm_password = serializers.CharField(write_only=True)
 
@@ -101,7 +95,7 @@ class CustomerRegistrationSerializer(serializers.ModelSerializer):
         validated_data.pop('confirm_password')
         password = validated_data.pop('password')
         validated_data['username'] = validated_data['email']
-        validated_data['user_type'] = 'USER'
+        validated_data['user_type'] = 'CUSTOMER'
 
         user = User(**validated_data)
         user.set_password(password)
@@ -109,9 +103,7 @@ class CustomerRegistrationSerializer(serializers.ModelSerializer):
         return user
 
 
-
 # Service Provider Registration Serializer
-
 class ServiceProviderRegistrationSerializer(serializers.ModelSerializer):
     confirm_password = serializers.CharField(write_only=True)
     category_name = serializers.SerializerMethodField(read_only=True)
@@ -125,8 +117,8 @@ class ServiceProviderRegistrationSerializer(serializers.ModelSerializer):
         ]
         extra_kwargs = {'password': {'write_only': True}}
 
-   def get_category_name(self, obj):
-    return obj.category.category if obj.category else None
+    def get_category_name(self, obj):
+        return obj.category.category if obj.category else None
 
     def validate_email(self, value):
         validate_email_format(value)
@@ -162,9 +154,7 @@ class ServiceProviderRegistrationSerializer(serializers.ModelSerializer):
         return user
 
 
-
 # Customer Update Serializer
-
 class UserUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -172,7 +162,7 @@ class UserUpdateSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         user = self.instance
-        if user.user_type != 'USER':
+        if user.user_type != 'CUSTOMER':
             raise serializers.ValidationError("Only customers can update this profile.")
         if 'email' in data:
             validate_email_format(data['email'])
@@ -191,9 +181,7 @@ class UserUpdateSerializer(serializers.ModelSerializer):
         return instance
 
 
-
 # Service Provider Update Serializer
-
 class ServiceProviderUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
