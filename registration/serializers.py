@@ -125,8 +125,8 @@ class ServiceProviderRegistrationSerializer(serializers.ModelSerializer):
         ]
         extra_kwargs = {'password': {'write_only': True}}
 
-    def get_category_name(self, obj):
-        return obj.category.name if obj.category else None
+   def get_category_name(self, obj):
+    return obj.category.category if obj.category else None
 
     def validate_email(self, value):
         validate_email_format(value)
