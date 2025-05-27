@@ -1,18 +1,35 @@
-# users/serializers.py
-
 from rest_framework import serializers
-from django.core.validators import RegexValidator
 from .models import User
-from utils.validators import (
-    contact_validator,
-    validate_email_format,
-    validate_password_strength
-)
+
+import re
+from django.core.validators import RegexValidator
 
 
-# -----------------------
-# Basic User Serializer
-# -----------------------
+
+def validate_email_format(email):
+    if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
+        raise serializers.ValidationError("Invalid email format.")
+    return email
+
+def validate_password_strength(password):
+    if len(password) < 8:
+        raise serializers.ValidationError("Password must be at least 8 characters long.")
+    if not re.search(r'[A-Z]', password):
+        raise serializers.ValidationError("Password must include at least one uppercase letter.")
+    if not re.search(r'[a-z]', password):
+        raise serializers.ValidationError("Password must include at least one lowercase letter.")
+    if not re.search(r'\d', password):
+        raise serializers.ValidationError("Password must include at least one digit.")
+    return password
+
+def validate_contact_format(contact):
+    if not re.fullmatch(r'[6-9]\d{9}', contact):
+        raise serializers.ValidationError("Contact number must be a valid 10-digit Indian mobile number.")
+    return contact
+
+
+
+# User Serializer
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -21,9 +38,9 @@ class UserSerializer(serializers.ModelSerializer):
         extra_kwargs = {'password': {'write_only': True}}
 
 
-# -----------------------------
+
 # Provider Info Display Serializer
-# -----------------------------
+
 
 class ProviderSerializer(serializers.ModelSerializer):
     location_display = serializers.SerializerMethodField()
@@ -44,9 +61,8 @@ class ProviderSerializer(serializers.ModelSerializer):
         return obj.category.name if obj.category else None
 
 
-# --------------------------------
+
 # Customer Registration Serializer
-# --------------------------------
 
 class CustomerRegistrationSerializer(serializers.ModelSerializer):
     confirm_password = serializers.CharField(write_only=True)
@@ -66,7 +82,7 @@ class CustomerRegistrationSerializer(serializers.ModelSerializer):
         return value
 
     def validate_contact(self, value):
-        contact_validator(value)
+        validate_contact_format(value)
         if User.objects.filter(contact=value).exists():
             raise serializers.ValidationError("Contact number already in use.")
         return value
@@ -93,9 +109,8 @@ class CustomerRegistrationSerializer(serializers.ModelSerializer):
         return user
 
 
-# -----------------------------------------
+
 # Service Provider Registration Serializer
-# -----------------------------------------
 
 class ServiceProviderRegistrationSerializer(serializers.ModelSerializer):
     confirm_password = serializers.CharField(write_only=True)
@@ -120,7 +135,7 @@ class ServiceProviderRegistrationSerializer(serializers.ModelSerializer):
         return value
 
     def validate_contact(self, value):
-        contact_validator(value)
+        validate_contact_format(value)
         if User.objects.filter(contact=value).exists():
             raise serializers.ValidationError("Contact number already in use.")
         return value
@@ -147,13 +162,10 @@ class ServiceProviderRegistrationSerializer(serializers.ModelSerializer):
         return user
 
 
-# -------------------------
+
 # Customer Update Serializer
-# -------------------------
 
 class UserUpdateSerializer(serializers.ModelSerializer):
-    contact = serializers.CharField(validators=[contact_validator])
-
     class Meta:
         model = User
         fields = ['first_name', 'last_name', 'contact', 'gender', 'email']
@@ -162,10 +174,14 @@ class UserUpdateSerializer(serializers.ModelSerializer):
         user = self.instance
         if user.user_type != 'USER':
             raise serializers.ValidationError("Only customers can update this profile.")
-        if 'email' in data and User.objects.exclude(id=user.id).filter(email=data['email']).exists():
-            raise serializers.ValidationError("Email already in use.")
-        if 'contact' in data and User.objects.exclude(id=user.id).filter(contact=data['contact']).exists():
-            raise serializers.ValidationError("Contact number already in use.")
+        if 'email' in data:
+            validate_email_format(data['email'])
+            if User.objects.exclude(id=user.id).filter(email=data['email']).exists():
+                raise serializers.ValidationError("Email already in use.")
+        if 'contact' in data:
+            validate_contact_format(data['contact'])
+            if User.objects.exclude(id=user.id).filter(contact=data['contact']).exists():
+                raise serializers.ValidationError("Contact number already in use.")
         return data
 
     def update(self, instance, validated_data):
@@ -175,13 +191,10 @@ class UserUpdateSerializer(serializers.ModelSerializer):
         return instance
 
 
-# -------------------------------
+
 # Service Provider Update Serializer
-# -------------------------------
 
 class ServiceProviderUpdateSerializer(serializers.ModelSerializer):
-    contact = serializers.CharField(validators=[contact_validator])
-
     class Meta:
         model = User
         fields = ['first_name', 'last_name', 'contact', 'gender', 'email', 'location', 'category']
@@ -190,10 +203,14 @@ class ServiceProviderUpdateSerializer(serializers.ModelSerializer):
         user = self.instance
         if user.user_type != 'SERVICE_PROVIDER':
             raise serializers.ValidationError("Only service providers can update this profile.")
-        if 'email' in data and User.objects.exclude(id=user.id).filter(email=data['email']).exists():
-            raise serializers.ValidationError("Email already in use.")
-        if 'contact' in data and User.objects.exclude(id=user.id).filter(contact=data['contact']).exists():
-            raise serializers.ValidationError("Contact number already in use.")
+        if 'email' in data:
+            validate_email_format(data['email'])
+            if User.objects.exclude(id=user.id).filter(email=data['email']).exists():
+                raise serializers.ValidationError("Email already in use.")
+        if 'contact' in data:
+            validate_contact_format(data['contact'])
+            if User.objects.exclude(id=user.id).filter(contact=data['contact']).exists():
+                raise serializers.ValidationError("Contact number already in use.")
         category = data.get('category') or getattr(user, 'category', None)
         if not category:
             raise serializers.ValidationError("Category is required for service providers.")
