@@ -109,7 +109,8 @@ class LoginAPIView(APIView):
         response = Response({
             'message': 'Successfully logged in!',
             'access_token': access_token,
-            'refresh_token': refresh_token
+            'refresh_token': refresh_token,
+            'user_type': user.user_type,
         }, status=status.HTTP_200_OK)
         response.set_cookie(
             key='refresh_token',
