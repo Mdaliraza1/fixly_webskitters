@@ -95,7 +95,7 @@ class CustomerRegistrationSerializer(serializers.ModelSerializer):
         validated_data.pop('confirm_password')
         password = validated_data.pop('password')
         validated_data['username'] = validated_data['email']
-        validated_data['user_type'] = 'CUSTOMER'
+        validated_data['user_type'] = 'USER'
 
         user = User(**validated_data)
         user.set_password(password)
