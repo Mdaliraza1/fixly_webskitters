@@ -1,3 +1,4 @@
+from collections import defaultdict
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -31,12 +32,16 @@ class ListReviewView(APIView):
     def get(self, request):
         provider_id = request.query_params.get('provider_id')
         reviewer_id = request.query_params.get('reviewer_id')
+        category_name = request.query_params.get('category')
 
-        reviews = Review.objects.all()
+        reviews = Review.objects.select_related('service_provider', 'reviewer').all()
+
         if provider_id:
             reviews = reviews.filter(service_provider_id=provider_id)
         if reviewer_id:
             reviews = reviews.filter(reviewer_id=reviewer_id)
+        if category_name:
+            reviews = reviews.filter(service_provider__category__name__iexact=category_name)
 
         serializer = ReviewListSerializer(reviews, many=True)
         return Response(serializer.data)
@@ -66,7 +71,7 @@ class UpdateReviewView(APIView):
         data = {
             'rating': request.data.get('rating', review.rating),
             'comment': request.data.get('comment', review.comment),
-            'service_provider': review.service_provider.id  # Keep service provider constant
+            'service_provider': review.service_provider.id
         }
 
         serializer = ReviewCreateSerializer(review, data=data, partial=True, context={'user': user})

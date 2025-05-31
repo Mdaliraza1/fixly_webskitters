@@ -14,3 +14,6 @@ class Review(models.Model):
 
     def __str__(self):
         return f"Review by {self.reviewer.email} for {self.service_provider.first_name} - {self.rating}★"
+
+
+
