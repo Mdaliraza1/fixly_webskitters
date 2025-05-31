@@ -6,7 +6,7 @@ from .views import (
     UserAPIView,
     UserUpdateView,
     ProviderUpdateView,
-    ProviderListView,
+    ServiceProviderListView,
     LoginView,
     LogoutView,
 )
@@ -27,5 +27,5 @@ urlpatterns = [
     path('update/customer/', UserUpdateView.as_view(), name='update_customer'),
     path('update/provider/', ProviderUpdateView.as_view(), name='update_provider'),
 
-    path('providers/', ProviderListView.as_view(), name='provider_list'),
+    path('providers/', ServiceProviderListView.as_view(), name='provider_list'),
 ]
