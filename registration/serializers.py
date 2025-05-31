@@ -1,9 +1,6 @@
 from rest_framework import serializers
 from .models import User
-
 import re
-from django.core.validators import RegexValidator
-
 
 def validate_email_format(email):
     if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
@@ -29,7 +26,6 @@ def validate_contact_format(contact):
     return contact
 
 
-# User Serializer
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -37,7 +33,6 @@ class UserSerializer(serializers.ModelSerializer):
         extra_kwargs = {'password': {'write_only': True}}
 
 
-# Provider Info Display Serializer
 class ProviderSerializer(serializers.ModelSerializer):
     location_display = serializers.SerializerMethodField()
     category_name = serializers.SerializerMethodField()
@@ -57,7 +52,6 @@ class ProviderSerializer(serializers.ModelSerializer):
         return obj.category.category if obj.category else None
 
 
-# Customer Registration Serializer
 class CustomerRegistrationSerializer(serializers.ModelSerializer):
     confirm_password = serializers.CharField(write_only=True)
 
@@ -103,7 +97,6 @@ class CustomerRegistrationSerializer(serializers.ModelSerializer):
         return user
 
 
-# Service Provider Registration Serializer
 class ServiceProviderRegistrationSerializer(serializers.ModelSerializer):
     confirm_password = serializers.CharField(write_only=True)
     category_name = serializers.SerializerMethodField(read_only=True)
@@ -154,7 +147,6 @@ class ServiceProviderRegistrationSerializer(serializers.ModelSerializer):
         return user
 
 
-# Customer Update Serializer
 class UserUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -162,7 +154,7 @@ class UserUpdateSerializer(serializers.ModelSerializer):
 
     def validate(self, data):
         user = self.instance
-        if user.user_type != 'CUSTOMER':
+        if user.user_type != 'USER':
             raise serializers.ValidationError("Only customers can update this profile.")
         if 'email' in data:
             validate_email_format(data['email'])
@@ -181,7 +173,6 @@ class UserUpdateSerializer(serializers.ModelSerializer):
         return instance
 
 
-# Service Provider Update Serializer
 class ServiceProviderUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
