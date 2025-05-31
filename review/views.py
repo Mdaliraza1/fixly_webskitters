@@ -28,23 +28,25 @@ class CreateReviewView(APIView):
             return Response(serializer.data, status=201)
         return Response(serializer.errors, status=400)
 
+
 class ListReviewView(APIView):
     def get(self, request):
+        category = request.query_params.get('category')
         provider_id = request.query_params.get('provider_id')
         reviewer_id = request.query_params.get('reviewer_id')
-        category_name = request.query_params.get('category')
 
-        reviews = Review.objects.select_related('service_provider', 'reviewer').all()
+        reviews = Review.objects.select_related('service_provider__category', 'reviewer').all()
 
+        if category:
+            reviews = reviews.filter(service_provider__category__category__iexact=category)
         if provider_id:
             reviews = reviews.filter(service_provider_id=provider_id)
         if reviewer_id:
             reviews = reviews.filter(reviewer_id=reviewer_id)
-        if category_name:
-            reviews = reviews.filter(service_provider__category__name__iexact=category_name)
 
         serializer = ReviewListSerializer(reviews, many=True)
         return Response(serializer.data)
+
 
 class UpdateReviewView(APIView):
     def put(self, request, pk):

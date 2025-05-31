@@ -28,7 +28,7 @@ class ReviewListSerializer(serializers.ModelSerializer):
     reviewer_name = serializers.CharField(source='reviewer.get_full_name', read_only=True)
     provider_name = serializers.CharField(source='service_provider.get_full_name', read_only=True)
     provider_email = serializers.EmailField(source='service_provider.email', read_only=True)
-    service_category = serializers.CharField(source='service_provider.category.name', read_only=True)
+    service_category = serializers.CharField(source='service_provider.category.category', read_only=True)
 
     class Meta:
         model = Review
