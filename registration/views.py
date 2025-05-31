@@ -98,10 +98,18 @@ class ProviderUpdateView(APIView):
             return Response({'message': 'Service provider profile updated successfully.', 'provider': serializer.data}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-class ProviderListView(APIView):
+class ServiceProviderListView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
-        providers = User.objects.filter(user_type='SERVICE_PROVIDER')
-        serializer = ProviderSerializer(providers, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        filters = {'user_type': 'SERVICE_PROVIDER'}
+        category = request.query_params.get('category')
+        location = request.query_params.get('location')
+        if category:
+            filters['category'] = category
+        if location:
+            filters['location'] = location
+
+        queryset = User.objects.filter(**filters)
+        serializer = ProviderSerializer(queryset, many=True)
+        return Response({'providers': serializer.data}, status=status.HTTP_200_OK)
