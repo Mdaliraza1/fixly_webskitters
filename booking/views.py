@@ -37,7 +37,11 @@ class CreateBookingView(APIView):
                 return Response({'error': 'User not found or token expired'}, status=404)
         except Exception as e:
             return Response({'error': f'Invalid token: {str(e)}'}, status=401)
-
+        if user.user_type != "USER":
+            return Response(
+                {"detail": "You are not allowed to access this resource as a service provider."},
+                status=status.HTTP_403_FORBIDDEN
+            )
         data = request.data.copy()
         serializer = BookingSerializer(data=data, context={'user': user})
         if serializer.is_valid():
@@ -69,7 +73,7 @@ class UserBookingsView(APIView):
         except Exception as e:
             return Response({'error': f'Invalid token: {str(e)}'}, status=401)
 
-        if user.user_type != "CUSTOMER":
+        if user.user_type != "USER":
             return Response(
                 {"detail": "You are not allowed to access this resource as a service provider."},
                 status=status.HTTP_403_FORBIDDEN
