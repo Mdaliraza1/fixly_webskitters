@@ -8,12 +8,12 @@ from .views import (
     ProviderUpdateView,
     ServiceProviderListView,
     LoginView,
-    LogoutView,
+    LogoutView
 )
-
+from . import views
 urlpatterns = [
 
-    # path('', views.index, name='index'),
+    path('', views.index, name='index'),
 
     path('register/customer/', CustomerRegistrationView.as_view(), name='register_customer'),
     path('register/provider/', ServiceProviderRegistrationView.as_view(), name='register_provider'),

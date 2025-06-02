@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from django.shortcuts import render
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -13,7 +14,8 @@ from .serializers import (
 )
 
 User = get_user_model()
-
+def index(request):
+    return render(request, 'index.html')
 class CustomerRegistrationView(APIView):
     permission_classes = [AllowAny]
 
