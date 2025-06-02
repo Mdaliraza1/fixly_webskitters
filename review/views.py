@@ -11,13 +11,12 @@ class CreateReviewView(APIView):
     def post(self, request):
         serializer = ReviewCreateSerializer(data=request.data, context={"user": request.user})
         if serializer.is_valid():
-            serializer.save(reviewer=request.user)
+            serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
 class ListReviewView(APIView):
-    permission_classes = []  # AllowAny
+    permission_classes = []  
 
     def get(self, request):
         category = request.query_params.get('category')

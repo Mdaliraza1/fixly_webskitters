@@ -1,5 +1,5 @@
 from django.db import models
-from registration.models import User  
+from registration.models import User 
 
 class Review(models.Model):
     reviewer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='reviews_made')
@@ -10,10 +10,7 @@ class Review(models.Model):
 
     class Meta:
         unique_together = ('reviewer', 'service_provider')
-        ordering = ['-created_at']
+        ordering = ['created_at']
 
     def __str__(self):
         return f"Review by {self.reviewer.email} for {self.service_provider.first_name} - {self.rating}★"
-
-
-

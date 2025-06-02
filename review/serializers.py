@@ -2,6 +2,10 @@ from rest_framework import serializers
 from .models import Review
 from registration.models import User
 
+from rest_framework import serializers
+from .models import Review
+from registration.models import User  # adjust import as needed
+
 class ReviewCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Review
@@ -14,15 +18,27 @@ class ReviewCreateSerializer(serializers.ModelSerializer):
         return value
 
     def validate_service_provider(self, value):
-        if value.user_type != 'SERVICE_PROVIDER':
+        # Use 'category' if that's what your User model uses
+        if value.category != 'SERVICE_PROVIDER':
             raise serializers.ValidationError("You can only review service providers.")
         return value
 
     def validate(self, data):
         user = self.context['user']
-        if data.get('service_provider') == user:
-            raise serializers.ValidationError("You cannot review yourself.")
+        service_provider = data.get('service_provider')
+
+        if service_provider == user:
+            raise serializers.ValidationError({"service_provider": "You cannot review yourself."})
+
+        if Review.objects.filter(reviewer=user, service_provider=service_provider).exists():
+            raise serializers.ValidationError({"non_field_errors": ["You have already reviewed this service provider."]})
+
         return data
+
+    def create(self, validated_data):
+        validated_data['reviewer'] = self.context['user']
+        return super().create(validated_data)
+
 
 class ReviewListSerializer(serializers.ModelSerializer):
     reviewer_name = serializers.CharField(source='reviewer.get_full_name', read_only=True)
