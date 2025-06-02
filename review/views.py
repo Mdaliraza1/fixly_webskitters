@@ -26,7 +26,7 @@ class ListReviewView(APIView):
         reviews = Review.objects.select_related('service_provider', 'reviewer')
 
         if category:
-            reviews = reviews.filter(service_provider__category__iexact=category)
+            reviews = reviews.filter(service_provider__category__exact=category)
         if provider_id:
             reviews = reviews.filter(service_provider_id=provider_id)
         if reviewer_id:
@@ -36,26 +36,4 @@ class ListReviewView(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-class UpdateReviewView(APIView):
-    permission_classes = [IsAuthenticated]
 
-    def patch(self, request, pk):
-        try:
-            review = Review.objects.get(pk=pk)
-        except Review.DoesNotExist:
-            return Response({"error": "Review not found"}, status=status.HTTP_404_NOT_FOUND)
-
-        if review.reviewer != request.user:
-            return Response({"error": "You can only update your own review"}, status=status.HTTP_403_FORBIDDEN)
-
-        data = {
-            'rating': request.data.get('rating', review.rating),
-            'comment': request.data.get('comment', review.comment),
-            'service_provider': review.service_provider.id
-        }
-
-        serializer = ReviewCreateSerializer(review, data=data, partial=True, context={'user': request.user})
-        if serializer.is_valid():
-            serializer.save()
-            return Response({'message': 'Review updated successfully'}, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
