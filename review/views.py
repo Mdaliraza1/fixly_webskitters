@@ -19,14 +19,14 @@ class ListReviewView(APIView):
     permission_classes = []  
 
     def get(self, request):
-        category = request.query_params.get('category')
+        category_id = request.query_params.get('category')  # ID of Service
         provider_id = request.query_params.get('provider_id')
         reviewer_id = request.query_params.get('reviewer_id')
 
         reviews = Review.objects.select_related('service_provider', 'reviewer')
 
-        if category:
-            reviews = reviews.filter(service_provider__category__exact=category)
+        if category_id:
+            reviews = reviews.filter(service_provider__category=category_id)
         if provider_id:
             reviews = reviews.filter(service_provider_id=provider_id)
         if reviewer_id:
@@ -34,6 +34,7 @@ class ListReviewView(APIView):
 
         serializer = ReviewListSerializer(reviews, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 
 
