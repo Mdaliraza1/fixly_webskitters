@@ -4,7 +4,7 @@ from registration.models import User
 
 from rest_framework import serializers
 from .models import Review
-from registration.models import User  # adjust import as needed
+from registration.models import User  
 
 class ReviewCreateSerializer(serializers.ModelSerializer):
     class Meta:
@@ -18,8 +18,7 @@ class ReviewCreateSerializer(serializers.ModelSerializer):
         return value
 
     def validate_service_provider(self, value):
-        # Use 'category' if that's what your User model uses
-        if value.category != 'SERVICE_PROVIDER':
+        if value.user_type != 'SERVICE_PROVIDER':
             raise serializers.ValidationError("You can only review service providers.")
         return value
 
