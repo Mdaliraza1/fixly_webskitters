@@ -44,6 +44,7 @@ class LoginView(TokenObtainPairView):
             user = User.objects.filter(email=email).first()
             if user:
                 response.data['user_type'] = user.user_type
+                response.data['user_id'] = user.id
         return response
 
 class RefreshView(TokenRefreshView):
