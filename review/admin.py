@@ -1,20 +1,21 @@
 from django.contrib import admin
-from django.db.models import Avg
-from .models import User
+from .models import Review
 
+class ReviewAdmin(admin.ModelAdmin):
+    list_display = ('reviewer_info', 'provider_info', 'rating', 'comment', 'created_at')
+    search_fields = (
+        'reviewer__first_name', 'reviewer__last_name', 'reviewer__email',
+        'service_provider__first_name', 'service_provider__last_name', 'service_provider__email',
+        'comment'
+    )
+    list_filter = ('rating', 'created_at', 'service_provider__category')
 
-class CustomUserAdmin(admin.ModelAdmin):
-    list_display = ('email', 'first_name', 'last_name', 'contact', 'user_type', 'category', 'average_rating')
-    list_filter = ('user_type', 'category')
-    search_fields = ('email', 'first_name', 'last_name', 'contact')
+    def reviewer_info(self, obj):
+        return f"{obj.reviewer.first_name} {obj.reviewer.last_name} ({obj.reviewer.email})"
+    reviewer_info.short_description = 'Reviewer'
 
-    def get_queryset(self, request):
-        qs = super().get_queryset(request)
-        # Annotate with average rating only for service providers
-        return qs.annotate(avg_rating=Avg('reviews_received__rating'))
+    def provider_info(self, obj):
+        return f"{obj.service_provider.first_name} {obj.service_provider.last_name} ({obj.service_provider.email})"
+    provider_info.short_description = 'Service Provider'
 
-    def average_rating(self, obj):
-        # Show average rating rounded to 2 decimals or "-" if none
-        return round(obj.avg_rating, 2) if obj.avg_rating else "-"
-    average_rating.admin_order_field = 'avg_rating'
-    average_rating.short_description = 'Avg Rating'
+admin.site.register(Review, ReviewAdmin)
