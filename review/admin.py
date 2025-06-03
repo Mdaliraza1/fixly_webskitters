@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.db.models import Avg
 from .models import User
 
-@admin.register(User)
+
 class CustomUserAdmin(admin.ModelAdmin):
     list_display = ('email', 'first_name', 'last_name', 'contact', 'user_type', 'category', 'average_rating')
     list_filter = ('user_type', 'category')
