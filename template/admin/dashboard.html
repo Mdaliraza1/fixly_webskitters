@@ -1,0 +1,88 @@
+{% extends "admin/change_list.html" %}
+{% load static %}
+
+{% block content %}
+<h1>Fixly Admin Dashboard</h1>
+
+<div style="margin-bottom: 1em;">
+    <label for="category-select">Filter by Category:</label>
+    <select id="category-select">
+        <option value="all">All</option>
+        {% for cat in categories %}
+        <option value="{{ cat }}">{{ cat }}</option>
+        {% endfor %}
+    </select>
+
+    <label for="start-date">Start Date:</label>
+    <input type="date" id="start-date" />
+
+    <label for="end-date">End Date:</label>
+    <input type="date" id="end-date" />
+
+    <button id="filter-btn">Apply Filters</button>
+</div>
+
+<div>
+    <canvas id="bookingsChart" width="800" height="400"></canvas>
+</div>
+
+<div>
+    <h3>Average Rating: <span id="avg-rating">-</span> ★</h3>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    function fetchData() {
+        let category = document.getElementById('category-select').value;
+        let startDate = document.getElementById('start-date').value;
+        let endDate = document.getElementById('end-date').value;
+
+        let url = new URL(window.location.origin + "{% url 'admin:dashboard-data' %}");
+        if (category && category !== 'all') url.searchParams.append('category', category);
+        if (startDate) url.searchParams.append('start_date', startDate);
+        if (endDate) url.searchParams.append('end_date', endDate);
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                updateChart(data.bookings);
+                document.getElementById('avg-rating').innerText = data.average_rating;
+            });
+    }
+
+    const ctx = document.getElementById('bookingsChart').getContext('2d');
+    let bookingsChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: 'Bookings per Day',
+                data: [],
+                fill: false,
+                borderColor: 'blue',
+                tension: 0.1
+            }]
+        },
+        options: {
+            scales: {
+                x: { title: { display: true, text: 'Date' } },
+                y: { title: { display: true, text: 'Bookings' }, beginAtZero: true }
+            }
+        }
+    });
+
+    function updateChart(bookings) {
+        let labels = bookings.map(b => b.date);
+        let data = bookings.map(b => b.count);
+        bookingsChart.data.labels = labels;
+        bookingsChart.data.datasets[0].data = data;
+        bookingsChart.update();
+    }
+
+    document.getElementById('filter-btn').addEventListener('click', fetchData);
+
+    // Initial load
+    fetchData();
+</script>
+
+{% endblock %}
