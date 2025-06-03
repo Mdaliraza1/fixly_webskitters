@@ -9,7 +9,7 @@ class BookingAdmin(admin.ModelAdmin):
     search_fields = ('user__email', 'user__first_name', 'user__last_name',
                      'service_provider__email', 'service_provider__first_name', 'service_provider__last_name')
     ordering = ('-created_at',)
-    list_editable = ('service_provider', 'status', 'time_slot')
+    list_editable = ( 'status', 'time_slot')
     actions = [export_as_csv_action("Export Bookings as CSV")]
 
     def user_name(self, obj):
