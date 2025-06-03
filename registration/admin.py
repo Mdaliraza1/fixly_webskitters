@@ -135,7 +135,7 @@ admin.site.register(User, CustomUserAdmin)
 admin.site.register(UserToken, UserTokenAdmin)
 admin.site.register(Booking, BookingAdmin)
 admin.site.register(Review, ReviewAdmin)
-admin.site.register(Service, ServiceAdmin)
+
 admin.site.register(Service, DashboardAdmin)  # Register Dashboard on Service model (dummy)
 
 
