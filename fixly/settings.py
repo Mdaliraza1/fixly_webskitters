@@ -14,6 +14,7 @@ ALLOWED_HOSTS = ["*"]
 
 # Application definition
 INSTALLED_APPS = [
+    'jazzmin', # Admin Theme
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -34,7 +35,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'whitenoise.runserver_nostatic',  
     
-    'jazzmin', # Admin Theme
+   
 ]
 
 MIDDLEWARE = [
