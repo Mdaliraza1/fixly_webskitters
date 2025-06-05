@@ -54,7 +54,7 @@ def decode_access_token(token):
 
 def create_refresh_token(user_id):
     payload = {
-        'user_id': user_id,  # Fixed here: use user_id, not id
+        'user_id': user_id,  
         'iat': datetime.now(timezone.utc),
         'exp': datetime.now(timezone.utc) + timedelta(days=7),  # 7 days expiry
     }

@@ -20,16 +20,20 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
     # My Apps
     'registration.apps.RegistrationConfig',
     'service.apps.ServiceConfig',
     'review.apps.ReviewConfig',
     'booking.apps.BookingConfig',
+
     # Installed Apps
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
     'rest_framework_simplejwt.token_blacklist',
+
+    'jazzmin', # Admin Theme
 ]
 
 MIDDLEWARE = [
@@ -127,6 +131,7 @@ AUTH_USER_MODEL = 'registration.User'
 CORS_ALLOWED_ORIGINS = [
     "https://fixlywebskitters-production-ebff.up.railway.app",
     "http://localhost:3000",
+    "http://localhost:8000",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -134,6 +139,7 @@ CORS_ALLOW_CREDENTIALS = True
 CSRF_TRUSTED_ORIGINS = [
     "https://fixlywebskitters-production-ebff.up.railway.app",
     "http://localhost:3000",
+    "http://localhost:8000",
 ]
 
 APPEND_SLASH = False
