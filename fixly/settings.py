@@ -154,3 +154,67 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
     'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
 }
+
+JAZZMIN_SETTINGS = {
+    "site_title": "Fixly Admin Portal",
+    "site_header": "Fixly Admin Dashboard",
+    "site_brand": "Fixly",
+    "welcome_sign": "Welcome to Fixly Admin Panel",
+    "copyright": "Fixly",
+    "search_model": ["registration.User", "booking.Booking", "review.Review"],
+
+    "show_sidebar": True,
+    "navigation_expanded": True,
+    "hide_apps": [],
+    "hide_models": [],
+
+    "order_with_respect_to": [
+        "registration",
+        "booking",
+        "review",
+        "service",
+    ],
+
+    "icons": {
+        "registration.User": "fas fa-user",
+        "registration.UserToken": "fas fa-key",
+        "booking.Booking": "fas fa-calendar-check",
+        "review.Review": "fas fa-star",
+        "service.Service": "fas fa-tools",
+    },
+
+    "custom_links": {
+        "service": [{
+            "name": "Dashboard Analytics",
+            "url": "admin:dashboard-data",
+            "icon": "fas fa-chart-line",
+            "permissions": ["service.view_service"],
+        }],
+    },
+
+    "topmenu_links": [
+        {"name": "Home", "url": "/", "permissions": ["auth.view_user"]},
+        {"model": "registration.user"},
+        {"app": "booking"},
+    ],
+
+    "usermenu_links": [
+        {"name": "Support", "url": "https://fixlysupport.example.com", "new_window": True},
+    ],
+
+    "changeform_format": "horizontal_tabs",  # or "collapsible", "vertical_tabs"
+}
+
+JAZZMIN_UI_TWEAKS = {
+    "theme": "cosmo",
+    "dark_mode_theme": "darkly",
+    "navbar_small_text": False,
+    "footer_small_text": False,
+    "body_small_text": False,
+    "brand_small_text": False,
+    "sidebar_nav_small_text": False,
+    "sidebar_disable_expand": False,
+    "sidebar_nav_flat_style": True,
+    "sidebar_nav_legacy_style": False,
+    "sidebar_nav_child_indent": True,
+}
