@@ -4,6 +4,7 @@ from django.db.models import Avg, Count
 from django.http import JsonResponse
 from django.template.response import TemplateResponse
 from django.utils.html import format_html
+from django.contrib.admin import SimpleListFilter
 
 from .models import User, UserToken
 from booking.models import Booking
@@ -33,14 +34,23 @@ class CustomUserAdmin(admin.ModelAdmin):
     average_rating.short_description = 'Avg Rating'
 
 
-class UserTokenAdmin(admin.ModelAdmin):
-    list_display = ('user', 'token', 'created_at', 'expired_at')
-    search_fields = ('user__email', 'token')
+class ServiceProviderFilter(SimpleListFilter):
+    title = 'Service Provider'
+    parameter_name = 'service_provider'
+
+    def lookups(self, request, model_admin):
+        providers = User.objects.filter(user_type='SERVICE_PROVIDER').values_list('id', 'first_name', 'last_name')
+        return [(str(id), f"{first} {last}") for id, first, last in providers]
+
+    def queryset(self, request, queryset):
+        if self.value():
+            return queryset.filter(service_provider_id=self.value())
+        return queryset
 
 
 class BookingAdmin(admin.ModelAdmin):
     list_display = ('user_name', 'service_provider_name', 'date', 'time_slot', 'status', 'created_at')
-    list_filter = ('status', 'service_provider', 'date')
+    list_filter = ('status', ServiceProviderFilter, 'date')
     search_fields = ('user__email', 'user__first_name', 'user__last_name',
                      'service_provider__email', 'service_provider__first_name', 'service_provider__last_name')
     ordering = ('-created_at',)
@@ -132,7 +142,7 @@ class DashboardAdmin(admin.ModelAdmin):
 
 
 admin.site.register(User, CustomUserAdmin)
-admin.site.register(UserToken, UserTokenAdmin)
+
 admin.site.register(Booking, BookingAdmin)
 admin.site.register(Review, ReviewAdmin)
 
