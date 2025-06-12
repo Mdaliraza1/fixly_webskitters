@@ -100,8 +100,14 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
+# Static files configuration
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+
+# Create static directory if it doesn't exist
+if not os.path.exists(os.path.join(BASE_DIR, 'static')):
+    os.makedirs(os.path.join(BASE_DIR, 'static'))
+
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
 ]

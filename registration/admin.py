@@ -1,6 +1,5 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from django.contrib.auth.forms import UserChangeForm, UserCreationForm
 from django.db.models import Count, Avg
 from django.urls import path
 from django.http import JsonResponse
@@ -13,20 +12,11 @@ from django.shortcuts import render
 from django.utils import timezone
 from datetime import timedelta
 from .models import User, UserToken, Dashboard
+from .forms import CustomUserChangeForm, CustomUserCreationForm
 from utils.admin_actions import export_as_csv_action
 from service.models import Service
 from booking.models import Booking
 from review.models import Review
-
-class CustomUserCreationForm(UserCreationForm):
-    class Meta(UserCreationForm.Meta):
-        model = User
-        fields = ('email', 'username', 'first_name', 'last_name', 'contact', 'gender', 'location', 'user_type', 'category')
-
-class CustomUserChangeForm(UserChangeForm):
-    class Meta(UserChangeForm.Meta):
-        model = User
-        fields = ('email', 'username', 'first_name', 'last_name', 'contact', 'gender', 'location', 'user_type', 'category')
 
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
@@ -37,86 +27,41 @@ class CustomUserAdmin(UserAdmin):
     list_filter = ('user_type', 'category', 'is_active')
     search_fields = ('email', 'username', 'first_name', 'last_name', 'contact', 'location')
     ordering = ('email',)
-    actions = ['activate_users', 'deactivate_users', export_as_csv_action()]
-
+    
     fieldsets = (
-        ('Personal Info', {
-            'fields': ('first_name', 'last_name', 'email', 'username', 'contact', 'gender', 'location')
-        }),
-        ('Service Provider Info', {
-            'fields': ('category',),
-            'classes': ('collapse',),
-            'description': 'Only applicable for service providers'
-        }),
-        ('Account Settings', {
-            'fields': ('password', 'user_type', 'is_active')
-        }),
+        (None, {'fields': ('email', 'password')}),
+        ('Personal info', {'fields': ('username', 'first_name', 'last_name', 'contact', 'location', 'profile_picture')}),
+        ('Service Provider Info', {'fields': ('user_type', 'category', 'description', 'experience')}),
+        ('Important dates', {'fields': ('last_login', 'date_joined')}),
+        ('Status', {'fields': ('is_active', 'is_staff', 'is_superuser')}),
     )
     
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('email', 'username', 'password1', 'password2', 'first_name', 'last_name', 
-                      'contact', 'gender', 'location', 'user_type', 'category'),
+            'fields': ('email', 'password1', 'password2', 'username', 'first_name', 'last_name', 'user_type', 'category'),
         }),
     )
-
+    
     def get_rating(self, obj):
-        if obj.user_type == 'SERVICE_PROVIDER':
-            avg_rating = Review.objects.filter(service_provider=obj).aggregate(Avg('rating'))['rating__avg']
-            if avg_rating:
-                stars = '★' * int(avg_rating) + '☆' * (5 - int(avg_rating))
-                return format_html('<span style="color: #FFD700;">{}</span> ({:.1f})', stars, avg_rating)
-        return '-'
+        if hasattr(obj, 'rating_avg'):
+            return round(obj.rating_avg, 1) if obj.rating_avg else 0
+        return 0
     get_rating.short_description = 'Rating'
-
+    
     def get_bookings(self, obj):
-        if obj.user_type == 'SERVICE_PROVIDER':
-            count = Booking.objects.filter(service_provider=obj).count()
-            return count
-        elif obj.user_type == 'USER':
-            count = Booking.objects.filter(user=obj).count()
-            return count
+        if hasattr(obj, 'booking_count'):
+            return obj.booking_count
         return 0
     get_bookings.short_description = 'Bookings'
-
-    def activate_users(self, request, queryset):
-        queryset.update(is_active=True)
-        messages.success(request, f'{queryset.count()} users were successfully activated.')
-    activate_users.short_description = 'Activate selected users'
-
-    def deactivate_users(self, request, queryset):
-        queryset.update(is_active=False)
-        messages.success(request, f'{queryset.count()} users were successfully deactivated.')
-    deactivate_users.short_description = 'Deactivate selected users'
-
-    def save_model(self, request, obj, form, change):
-        try:
-            if not change:  # If creating new user
-                if not obj.password.startswith(('pbkdf2_sha256$', 'bcrypt$', 'argon2')):
-                    obj.set_password(obj.password)
-            super().save_model(request, obj, form, change)
-        except ValidationError as e:
-            messages.error(request, str(e))
+    
+    actions = [export_as_csv_action("CSV Export", fields=['email', 'username', 'first_name', 'last_name', 'user_type', 'contact', 'location'])]
 
 @admin.register(UserToken)
 class UserTokenAdmin(admin.ModelAdmin):
-    list_display = ('user', 'created_at', 'expired_at')
-    list_filter = ('created_at', 'expired_at')
-    search_fields = ('user__email', 'token')
+    list_display = ('user', 'token', 'created_at')
+    search_fields = ('user__email', 'user__username', 'token')
     ordering = ('-created_at',)
-    actions = [export_as_csv_action()]
-    
-    fieldsets = (
-        ('Token Information', {
-            'fields': ('user', 'token', 'expired_at')
-        }),
-    )
-    
-    def get_readonly_fields(self, request, obj=None):
-        if obj:  # editing an existing object
-            return ('user', 'token', 'created_at')
-        return ('created_at',)
 
 @admin.register(Dashboard)
 class DashboardAdmin(admin.ModelAdmin):
