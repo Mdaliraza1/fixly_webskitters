@@ -26,11 +26,12 @@
     <div>
       <label><strong>📁 Category:</strong></label><br>
       <select name="category">
-        <option value="all" {% if request.GET.category|default:"all"=="all" %}selected{% endif %}>All</option>
+        <option value="all" {% if not request.GET.category or request.GET.category == "all" %}selected{% endif %}>All</option>
         {% for cat in categories %}
-        <option value="{{ cat }}" {% if cat==request.GET.category %}selected{% endif %}>{{ cat }}</option>
+          <option value="{{ cat }}" {% if cat == request.GET.category %}selected{% endif %}>{{ cat }}</option>
         {% endfor %}
       </select>
+      
     </div>
 
     <div>
