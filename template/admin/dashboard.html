@@ -13,6 +13,7 @@
         padding: 20px;
         border-radius: 8px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        height: 400px;
     }
     .filters {
         margin-bottom: 20px;
@@ -20,11 +21,16 @@
         gap: 15px;
         align-items: center;
         flex-wrap: wrap;
+        background: white;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
     .filters select, .filters input {
         padding: 8px;
         border: 1px solid #ddd;
         border-radius: 4px;
+        min-width: 150px;
     }
     .filters button {
         padding: 8px 16px;
@@ -61,6 +67,11 @@
         font-weight: bold;
         color: var(--primary);
     }
+    .charts-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        gap: 20px;
+    }
 </style>
 {% endblock %}
 
@@ -73,8 +84,8 @@
             <option value="{{ category }}">{{ category }}</option>
             {% endfor %}
         </select>
-        <input type="date" id="startDate">
-        <input type="date" id="endDate">
+        <input type="date" id="startDate" placeholder="Start Date">
+        <input type="date" id="endDate" placeholder="End Date">
         <input type="text" id="searchInput" placeholder="Search providers...">
         <button onclick="updateDashboard()">Apply Filters</button>
     </div>
@@ -98,35 +109,35 @@
         </div>
     </div>
 
-    <div class="chart-container">
-        <canvas id="bookingsChart"></canvas>
-    </div>
-    
-    <div class="chart-container">
-        <canvas id="topProvidersChart"></canvas>
-    </div>
-    
-    <div class="chart-container">
-        <canvas id="ratingsChart"></canvas>
+    <div class="charts-grid">
+        <div class="chart-container">
+            <canvas id="bookingsChart"></canvas>
+        </div>
+        <div class="chart-container">
+            <canvas id="providersChart"></canvas>
+        </div>
+        <div class="chart-container">
+            <canvas id="ratingsChart"></canvas>
+        </div>
     </div>
 </div>
 
 <script>
-let bookingsChart, topProvidersChart, ratingsChart;
+let bookingsChart, providersChart, ratingsChart;
 
 function initializeCharts(data) {
+    // Update statistics
+    document.getElementById('totalUsers').textContent = data.statistics.total_users;
+    document.getElementById('totalProviders').textContent = data.statistics.total_providers;
+    document.getElementById('totalBookings').textContent = data.statistics.total_bookings;
+    document.getElementById('avgRating').textContent = data.statistics.average_rating;
+
+    // Destroy existing charts
     if (bookingsChart) bookingsChart.destroy();
-    if (topProvidersChart) topProvidersChart.destroy();
+    if (providersChart) providersChart.destroy();
     if (ratingsChart) ratingsChart.destroy();
 
-    // Update stats
-    document.getElementById('totalUsers').textContent = data.user_type_counts.find(t => t.user_type === 'USER')?.count || 0;
-    document.getElementById('totalProviders').textContent = data.user_type_counts.find(t => t.user_type === 'SERVICE_PROVIDER')?.count || 0;
-    document.getElementById('totalBookings').textContent = data.bookings_over_time.reduce((acc, curr) => acc + curr.count, 0);
-    const avgRating = data.ratings_by_provider.reduce((acc, curr) => acc + curr.avg_rating, 0) / data.ratings_by_provider.length;
-    document.getElementById('avgRating').textContent = avgRating ? avgRating.toFixed(1) : '-';
-
-    // Bookings over time
+    // Bookings over time chart
     bookingsChart = new Chart(document.getElementById('bookingsChart'), {
         type: 'line',
         data: {
@@ -135,11 +146,13 @@ function initializeCharts(data) {
                 label: 'Bookings',
                 data: data.bookings_over_time.map(b => b.count),
                 borderColor: 'rgb(75, 192, 192)',
-                tension: 0.1
+                tension: 0.1,
+                fill: false
             }]
         },
         options: {
             responsive: true,
+            maintainAspectRatio: false,
             plugins: {
                 title: {
                     display: true,
@@ -149,19 +162,20 @@ function initializeCharts(data) {
         }
     });
 
-    // Top providers by bookings
-    topProvidersChart = new Chart(document.getElementById('topProvidersChart'), {
+    // Top providers chart
+    providersChart = new Chart(document.getElementById('providersChart'), {
         type: 'bar',
         data: {
-            labels: data.bookings_by_provider.map(p => p.name),
+            labels: data.top_providers.map(p => p.name),
             datasets: [{
                 label: 'Number of Bookings',
-                data: data.bookings_by_provider.map(p => p.count),
+                data: data.top_providers.map(p => p.bookings),
                 backgroundColor: 'rgb(54, 162, 235)'
             }]
         },
         options: {
             responsive: true,
+            maintainAspectRatio: false,
             plugins: {
                 title: {
                     display: true,
@@ -171,23 +185,24 @@ function initializeCharts(data) {
         }
     });
 
-    // Ratings distribution
+    // Ratings chart
     ratingsChart = new Chart(document.getElementById('ratingsChart'), {
         type: 'bar',
         data: {
-            labels: data.ratings_by_provider.map(p => p.name),
+            labels: data.top_rated.map(p => p.name),
             datasets: [{
                 label: 'Average Rating',
-                data: data.ratings_by_provider.map(p => p.avg_rating),
+                data: data.top_rated.map(p => p.rating),
                 backgroundColor: 'rgb(255, 205, 86)'
             }]
         },
         options: {
             responsive: true,
+            maintainAspectRatio: false,
             plugins: {
                 title: {
                     display: true,
-                    text: 'Service Provider Ratings'
+                    text: 'Top Rated Service Providers'
                 }
             },
             scales: {
@@ -206,12 +221,13 @@ function updateDashboard() {
     const endDate = document.getElementById('endDate').value;
     const search = document.getElementById('searchInput').value;
 
-    fetch(`dashboard-data/?category=${category}&start_date=${startDate}&end_date=${endDate}&search=${search}`)
+    fetch(`data/?category=${category}&start_date=${startDate}&end_date=${endDate}&search=${search}`)
         .then(response => response.json())
-        .then(data => initializeCharts(data));
+        .then(data => initializeCharts(data))
+        .catch(error => console.error('Error fetching dashboard data:', error));
 }
 
 // Initialize dashboard on load
-updateDashboard();
+document.addEventListener('DOMContentLoaded', updateDashboard);
 </script>
 {% endblock %}
