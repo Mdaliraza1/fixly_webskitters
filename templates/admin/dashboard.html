@@ -3,20 +3,20 @@
 {% block title %}Dashboard | {{ block.super }}{% endblock %}
 
 {% block content %}
-<h1>📊 Fixly Admin Dashboard</h1>
+<h1 style="margin-bottom: 20px;">📊 Fixly Admin Dashboard</h1>
 
-<form method="get" style="margin-bottom: 20px;">
+<form method="get" style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-end; margin-bottom: 30px;">
   <div>
-    <label>📅 Date Range:</label>
+    <label>📅 Date Range:</label><br>
     <input type="date" name="start_date" value="{{ request.GET.start_date }}">
     <input type="date" name="end_date" value="{{ request.GET.end_date }}">
   </div>
   <div>
-    <label>🔍 Search Provider:</label>
+    <label>🔍 Search Provider:</label><br>
     <input type="text" name="search" value="{{ request.GET.search }}">
   </div>
   <div>
-    <label>📂 Category:</label>
+    <label>📂 Category:</label><br>
     <select name="category">
       <option value="all">All</option>
       {% for cat in categories %}
@@ -25,31 +25,36 @@
     </select>
   </div>
   <div>
-    <label>📈 Chart Type:</label>
+    <label>📈 Chart Type:</label><br>
     <select id="chartType">
       <option value="line">Line</option>
       <option value="bar">Bar</option>
       <option value="pie">Pie</option>
     </select>
   </div>
-  <button type="submit">Apply</button>
+  <div>
+    <button type="submit" style="padding: 6px 12px; margin-top: 5px;">Apply</button>
+  </div>
 </form>
 
 <hr>
 
 <h2>📌 Key Stats</h2>
-<ul>
-  <li>Total Users: <strong>{{ statistics.total_users }}</strong></li>
-  <li>Total Providers: <strong>{{ statistics.total_providers }}</strong></li>
-  <li>Total Bookings: <strong>{{ statistics.total_bookings }}</strong></li>
-  <li>Average Rating: <strong>{{ statistics.average_rating }}</strong></li>
+<ul style="list-style-type: none; padding-left: 0;">
+  <li>👤 Total Users: <strong>{{ statistics.total_users }}</strong></li>
+  <li>🧑‍🔧 Total Providers: <strong>{{ statistics.total_providers }}</strong></li>
+  <li>📅 Total Bookings: <strong>{{ statistics.total_bookings }}</strong></li>
+  <li>⭐ Average Rating: <strong>{{ statistics.average_rating }}</strong></li>
 </ul>
 
 <hr>
 
-<canvas id="bookingChart" height="120"></canvas>
+<h2 style="margin-top: 30px;">📈 Bookings Chart</h2>
+<div style="max-width: 1000px; margin-top: 20px;">
+  <canvas id="bookingChart" height="120"></canvas>
+</div>
 
-<h3>🏆 Top 5 Providers (by Bookings)</h3>
+<h3 style="margin-top: 40px;">🏆 Top 5 Providers (by Bookings)</h3>
 <ul>
   {% for p in top_providers %}
     <li>{{ p.name }} - {{ p.bookings }} bookings</li>
@@ -87,24 +92,35 @@
     if (currentChart) currentChart.destroy();
 
     currentChart = new Chart(ctx, {
-      type,
+      type: type,
       data: {
-        labels,
+        labels: labels,
         datasets: [{
           label: 'Bookings Over Time',
           data: counts,
+          backgroundColor: type === 'pie'
+            ? ['#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b']
+            : 'rgba(78, 115, 223, 0.2)',
           borderColor: '#4e73df',
-          backgroundColor: 'rgba(78, 115, 223, 0.2)',
+          borderWidth: 1
         }]
       },
       options: {
         responsive: true,
         plugins: {
-          legend: { display: true },
+          legend: {
+            display: type !== 'bar',
+            position: 'top'
+          }
         },
-        scales: {
-          y: { beginAtZero: true }
-        }
+        scales: type !== 'pie' ? {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              stepSize: 1
+            }
+          }
+        } : {}
       }
     });
   }
