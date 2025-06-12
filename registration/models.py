@@ -17,6 +17,7 @@ class User(AbstractUser):
     USER_TYPE_CHOICES = (
         ('USER', 'User'),
         ('SERVICE_PROVIDER', 'Service Provider'),
+        ('ADMIN', 'Admin'),
     )
 
     # Override email field to make it unique
@@ -72,6 +73,10 @@ class User(AbstractUser):
             raise ValidationError({'category': 'Category is required for service providers'})
         if self.user_type == 'USER' and self.category:
             raise ValidationError({'category': 'Regular users should not have a category'})
+        if self.user_type == 'ADMIN' and not self.is_staff:
+            self.is_staff = True
+        if self.user_type == 'ADMIN' and not self.is_superuser:
+            self.is_superuser = True
 
     def save(self, *args, **kwargs):
         self.full_clean()
