@@ -5,7 +5,6 @@ from django.urls import path
 from django.http import JsonResponse
 from django.db.models import Q
 from django.utils.html import format_html
-from django.contrib.auth.models import Group
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.shortcuts import render
@@ -27,6 +26,7 @@ class CustomUserAdmin(UserAdmin):
     list_filter = ('user_type', 'is_active')
     search_fields = ('email', 'username', 'first_name', 'last_name', 'contact', 'location')
     ordering = ('email',)
+    filter_horizontal = ()  # Remove groups and user_permissions
     
     fieldsets = (
         (None, {'fields': ('email', 'password')}),
