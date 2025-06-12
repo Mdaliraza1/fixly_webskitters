@@ -7,7 +7,7 @@ from django.utils.html import format_html
 from django.contrib.admin.views.decorators import staff_member_required
 from django.utils.decorators import method_decorator
 from django.views.generic import TemplateView
-from .models import User, UserToken
+from .models import User
 from .forms import CustomUserChangeForm, CustomUserCreationForm
 from utils.admin_actions import export_as_csv_action
 from service.models import Service
