@@ -2,6 +2,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 import os
 from datetime import timedelta
+
 load_dotenv()
 
 # Base directory
@@ -14,7 +15,7 @@ ALLOWED_HOSTS = ["*"]
 
 # Application definition
 INSTALLED_APPS = [
-    'jazzmin', # Admin Theme
+    'jazzmin',  # Admin Theme
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -28,31 +29,27 @@ INSTALLED_APPS = [
     'review.apps.ReviewConfig',
     'booking.apps.BookingConfig',
 
-    # Installed Apps
+    # Installed Packages
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
     'rest_framework_simplejwt.token_blacklist',
-    'whitenoise.runserver_nostatic',  
-    
-   
+    'whitenoise.runserver_nostatic',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'corsheaders.middleware.CorsMiddleware', # CORS Middleware
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
 ]
 
 ROOT_URLCONF = 'fixly.urls'
-
 
 TEMPLATES = [
     {
@@ -72,7 +69,6 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'fixly.wsgi.application'
 
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
@@ -83,7 +79,6 @@ DATABASES = {
         'PORT': os.getenv('DATABASE_PORT'),
     }
 }
-
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -100,24 +95,19 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-# Static files
-
 STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
 ]
 
-# Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# JWT Authentication Settings
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
@@ -127,10 +117,8 @@ REST_FRAMEWORK = {
     ),
 }
 
-# User model configuration
 AUTH_USER_MODEL = 'registration.User'
 
-# CORS and CSRF Settings (Updated)
 CORS_ALLOWED_ORIGINS = [
     "https://fixlywebskitters-production-ebff.up.railway.app",
     "http://localhost:3000",
@@ -156,6 +144,7 @@ SIMPLE_JWT = {
     'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
 }
 
+# ✅ Corrected JAZZMIN settings
 JAZZMIN_SETTINGS = {
     "site_title": "Fixly Admin Portal",
     "site_header": "Fixly Admin Dashboard",
@@ -185,12 +174,14 @@ JAZZMIN_SETTINGS = {
     },
 
     "custom_links": {
-        "service": [{
-            "name": "Dashboard Analytics",
-            "url": "admin:dashboard-data",
-            "icon": "fas fa-chart-line",
-            "permissions": ["service.view_service"],
-        }],
+        "service": [
+            {
+                "name": "Dashboard Analytics",
+                "url": "admin:dashboard-data",
+                "icon": "fas fa-chart-line",
+                "permissions": ["service.view_service"],
+            }
+        ],
     },
 
     "topmenu_links": [
@@ -219,14 +210,3 @@ JAZZMIN_UI_TWEAKS = {
     "sidebar_nav_legacy_style": False,
     "sidebar_nav_child_indent": True,
 }
-"custom_links": {
-    "service": [
-        {
-            "name": "Dashboard Analytics",
-            "url": "admin:dashboard-data",
-            "icon": "fas fa-chart-line",
-            "permissions": ["service.view_service"],
-        }
-    ],
-},
-
