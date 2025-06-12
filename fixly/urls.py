@@ -91,14 +91,13 @@ from registration.models import User, UserToken
 from service.models import Service
 from booking.models import Booking
 from review.models import Review
-from registration.admin import CustomUserAdmin, UserTokenAdmin
+from registration.admin import CustomUserAdmin
 from service.admin import ServiceAdmin
 from booking.admin import BookingAdmin
 from review.admin import ReviewAdmin
 
 # Register models
 admin_site.register(User, CustomUserAdmin)
-admin_site.register(UserToken, UserTokenAdmin)
 admin_site.register(Service, ServiceAdmin)
 admin_site.register(Booking, BookingAdmin)
 admin_site.register(Review, ReviewAdmin)
