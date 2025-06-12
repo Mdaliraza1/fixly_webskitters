@@ -23,7 +23,7 @@ class CustomUserAdmin(UserAdmin):
         'email', 'first_name', 'last_name', 'user_type', 'contact',
         'location', 'get_rating', 'get_provider_bookings', 'get_user_bookings'
     )
-    list_filter = ('user_type')
+    list_filter = ('user_type',)
     search_fields = ('email', 'username', 'first_name', 'last_name', 'contact', 'location')
     ordering = ('email',)
     filter_horizontal = ()
@@ -88,8 +88,9 @@ class DashboardView(TemplateView):
         services = Service.objects.all()
 
         if category and category != 'all':
-            bookings = bookings.filter(service_provider__category__category=category)
-            reviews = reviews.filter(service_provider__category__category=category)
+            bookings = bookings.filter(service_provider__category=category)
+            reviews = reviews.filter(service_provider__category=category)
+
         if start_date:
             bookings = bookings.filter(date__gte=start_date)
         if end_date:
