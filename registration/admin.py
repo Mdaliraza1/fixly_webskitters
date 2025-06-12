@@ -1,60 +1,56 @@
-from django.contrib import admin
-from django.urls import path
-from django.http import JsonResponse
-from django.db.models import Count, Avg
-from service.models import Service
-from booking.models import Booking
-from review.models import Review
-from registration.models import User
+def dashboard_data(self, request):
+    from django.db.models import Q
+    from booking.models import Booking
+    from review.models import Review
+    from registration.models import User
 
-class DashboardAdmin(admin.ModelAdmin):
-    change_list_template = "admin/dashboard.html"
+    category = request.GET.get('category')
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+    search = request.GET.get('search', '').strip()
 
-    def get_urls(self):
-        urls = super().get_urls()
-        custom_urls = [
-            path('dashboard-data/', self.admin_site.admin_view(self.dashboard_data), name="dashboard-data"),
-        ]
-        return custom_urls + urls
+    filters = {}
+    review_filters = {}
+    user_filters = Q()
+    
+    if category and category != 'all':
+        filters['service_provider__category__category'] = category
+        review_filters['service_provider__category__category'] = category
 
-    def changelist_view(self, request, extra_context=None):
-        categories = Service.objects.values_list('category', flat=True).distinct()
-        extra_context = extra_context or {}
-        extra_context['categories'] = categories
-        return super().changelist_view(request, extra_context=extra_context)
+    if start_date:
+        filters['date__gte'] = start_date
+    if end_date:
+        filters['date__lte'] = end_date
 
-    def dashboard_data(self, request):
-        category = request.GET.get('category')
-        filters = {}
-        if category and category != 'all':
-            filters['service_provider__category__category'] = category
+    if search:
+        user_filters |= Q(first_name__icontains=search)
+        user_filters |= Q(last_name__icontains=search)
+        user_filters |= Q(contact__icontains=search)
 
-        bookings_by_category = Booking.objects.filter(**filters).values('service_provider__category__category') \
-            .annotate(count=Count('id')).order_by('-count')
+    user_ids = User.objects.filter(user_filters).values_list('id', flat=True)
+    filters['service_provider__id__in'] = user_ids
 
-        bookings_by_provider = Booking.objects.filter(**filters).values(
-            'service_provider__first_name',
-            'service_provider__last_name'
-        ).annotate(count=Count('id')).order_by('-count')[:10]
+    bookings = Booking.objects.filter(**filters)
+    reviews = Review.objects.filter(**review_filters)
 
-        ratings_by_provider = Review.objects.filter(**filters).values(
-            'service_provider__first_name',
-            'service_provider__last_name'
-        ).annotate(avg_rating=Avg('rating')).order_by('-avg_rating')[:10]
+    bookings_by_provider = bookings.values(
+        'service_provider__first_name', 'service_provider__last_name'
+    ).annotate(count=Count('id')).order_by('-count')[:10]
 
-        user_type_counts = User.objects.values('user_type').annotate(count=Count('id'))
+    ratings_by_provider = reviews.values(
+        'service_provider__first_name', 'service_provider__last_name'
+    ).annotate(avg_rating=Avg('rating')).order_by('-avg_rating')[:10]
 
-        reviews_by_category = Review.objects.filter(**filters).values('service_provider__category__category') \
-            .annotate(count=Count('id')).order_by('-count')
+    bookings_over_time = bookings.values('date').annotate(count=Count('id')).order_by('date')
 
-        return JsonResponse({
-            'bookings_by_category': list(bookings_by_category),
-            'bookings_by_provider': list(bookings_by_provider),
-            'ratings_by_provider': list(ratings_by_provider),
-            'user_type_counts': list(user_type_counts),
-            'reviews_by_category': list(reviews_by_category),
-        })
+    user_type_counts = User.objects.values('user_type').annotate(count=Count('id'))
 
-# Replace this with any dummy model or existing one like Service
-from service.models import Service
-admin.site.register(Service, DashboardAdmin)
+    def full_name(obj):
+        return f"{obj['service_provider__first_name']} {obj['service_provider__last_name']}"
+
+    return JsonResponse({
+        'bookings_by_provider': [{'name': full_name(b), 'count': b['count']} for b in bookings_by_provider],
+        'ratings_by_provider': [{'name': full_name(r), 'avg_rating': r['avg_rating']} for r in ratings_by_provider],
+        'bookings_over_time': list(bookings_over_time),
+        'user_type_counts': list(user_type_counts),
+    })
