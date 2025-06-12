@@ -55,7 +55,12 @@ class CustomUserAdmin(UserAdmin):
         return 0
     get_bookings.short_description = 'Bookings'
     
-    actions = [export_as_csv_action("CSV Export", fields=['email', 'username', 'first_name', 'last_name', 'user_type', 'contact', 'location'])]
+    actions = [
+        export_as_csv_action(
+            description="Export selected users to CSV",
+            fields=['email', 'username', 'first_name', 'last_name', 'user_type', 'contact', 'location']
+        )
+    ]
 
 @admin.register(UserToken)
 class UserTokenAdmin(admin.ModelAdmin):
