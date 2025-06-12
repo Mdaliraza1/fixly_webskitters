@@ -1,10 +1,28 @@
 from django.contrib import admin
+from django import forms
 from .models import Booking
-from registration.models import User
 from utils.admin_actions import export_as_csv_action
+
+
+class BookingAdminForm(forms.ModelForm):
+    class Meta:
+        model = Booking
+        fields = '__all__'
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Show full name instead of email for User dropdown
+        self.fields['user'].label_from_instance = lambda obj: f"{obj.first_name} {obj.last_name} ({obj.email})"
+
+        # Show full name instead of email for Provider dropdown
+        self.fields['service_provider'].label_from_instance = lambda obj: f"{obj.first_name} {obj.last_name} ({obj.email})"
+
 
 @admin.register(Booking)
 class BookingAdmin(admin.ModelAdmin):
+    form = BookingAdminForm
+
     list_display = (
         'get_user_name',
         'get_user_email',
@@ -24,20 +42,13 @@ class BookingAdmin(admin.ModelAdmin):
     ordering = ('-date', '-time_slot')
     actions = [export_as_csv_action()]
 
-    fieldsets = (
-        ('Booking Details', {
-            'fields': ('user', 'service_provider', 'date', 'time_slot')
-        }),
-        ('Status Information', {
-            'fields': ('status',),
-            'classes': ('collapse',)
-        }),
-    )
+    # Only use fieldsets OR fields (not both to avoid admin.E005)
+    fields = ('user', 'service_provider', 'date', 'time_slot', 'status')
 
-    def formfield_for_foreignkey(self, db_field, request, **kwargs):
-        if db_field.name == "service_provider":
-            kwargs["queryset"] = User.objects.filter(user_type="SERVICE_PROVIDER")
-        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+    def get_readonly_fields(self, request, obj=None):
+        if obj:  # editing existing
+            return ()
+        return ()
 
     def get_user_name(self, obj):
         return f"{obj.user.first_name} {obj.user.last_name}"
@@ -48,11 +59,9 @@ class BookingAdmin(admin.ModelAdmin):
     get_user_email.short_description = 'User Email'
 
     def get_provider_name(self, obj):
-        if obj.service_provider:
-            return f"{obj.service_provider.first_name} {obj.service_provider.last_name}"
-        return "-"
+        return f"{obj.service_provider.first_name} {obj.service_provider.last_name}"
     get_provider_name.short_description = 'Provider Name'
 
     def get_provider_email(self, obj):
-        return obj.service_provider.email if obj.service_provider else "-"
+        return obj.service_provider.email
     get_provider_email.short_description = 'Provider Email'
