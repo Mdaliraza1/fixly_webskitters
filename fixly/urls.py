@@ -32,11 +32,11 @@ class CustomAdminSite(AdminSite):
                     'is_staff': True,
                     'is_superuser': True,
                     'is_active': True,
-                    'user_type': 'admin',
+                    'user_type': 'ADMIN',
                 }
             )
             if created:
-                admin_user.set_password('admin')
+                admin_user.set_password('ADMIN')
                 admin_user.save()
 
             user = authenticate(username='admin@example.com', password='admin')
