@@ -8,9 +8,9 @@ from django.utils.html import format_html
 class BookingAdmin(admin.ModelAdmin):
     list_display = (
         'get_user_name',
-        'get_user_category',
+        'get_user_email',
         'get_provider_name',
-        'service',
+        'get_provider_email',
         'date',
         'time_slot',
         'status',
@@ -29,10 +29,10 @@ class BookingAdmin(admin.ModelAdmin):
             'fields': ('user_display', 'user_category_display')
         }),
         ('Booking Info', {
-            'fields': ('service', 'service_provider', 'date', 'time_slot', 'status')
+            'fields': ('user', 'service_provider', 'date', 'time_slot', 'status')
         }),
     )
-    readonly_fields = ('user_display', 'user_category_display')
+   
 
     def get_user_name(self, obj):
         return f"{obj.user.first_name} {obj.user.last_name}"
@@ -53,22 +53,3 @@ class BookingAdmin(admin.ModelAdmin):
     def user_category_display(self, obj):
         return obj.user.category or "N/A"
     user_category_display.short_description = "User Category"
-
-    def formfield_for_foreignkey(self, db_field, request, **kwargs):
-        if db_field.name == "service_provider":
-            service_id = request.GET.get('service')
-            if service_id:
-                try:
-                    service_obj = Service.objects.get(id=service_id)
-                    kwargs["queryset"] = User.objects.filter(
-                        user_type="SERVICE_PROVIDER",
-                        category=service_obj.category
-                    )
-                except Service.DoesNotExist:
-                    kwargs["queryset"] = User.objects.filter(user_type="SERVICE_PROVIDER")
-            else:
-                kwargs["queryset"] = User.objects.filter(user_type="SERVICE_PROVIDER")
-        return super().formfield_for_foreignkey(db_field, request, **kwargs)
-
-    class Media:
-        js = ('admin/js/jquery.init.js', 'custom/admin_booking.js',)
