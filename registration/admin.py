@@ -74,32 +74,15 @@ class DashboardAdmin(admin.ModelAdmin):
 
     def get_urls(self):
         urls = [
-            path('', self.admin_site.admin_view(self.dashboard_view), name='dashboard'),
-            path('data/', self.admin_site.admin_view(self.dashboard_data), name='dashboard-data'),
+            path('', self.admin_site.admin_view(self.changelist_view), name='registration_dashboard_changelist'),
         ]
         return urls
 
-    def has_module_permission(self, request):
-        return True
+    def changelist_view(self, request, extra_context=None):
+        extra_context = extra_context or {}
+        extra_context['title'] = 'Dashboard'
+        extra_context['categories'] = Service.objects.values_list('category', flat=True).distinct()
 
-    def has_add_permission(self, request):
-        return False
-
-    def has_change_permission(self, request, obj=None):
-        return True
-
-    def has_delete_permission(self, request, obj=None):
-        return False
-
-    def dashboard_view(self, request):
-        context = {
-            **self.admin_site.each_context(request),
-            'title': 'Dashboard',
-            'categories': Service.objects.values_list('category', flat=True).distinct(),
-        }
-        return render(request, 'admin/dashboard.html', context)
-
-    def dashboard_data(self, request):
         # Get filter parameters
         category = request.GET.get('category')
         start_date = request.GET.get('start_date')
@@ -129,50 +112,50 @@ class DashboardAdmin(admin.ModelAdmin):
             reviews = reviews.filter(provider_filter)
 
         # Calculate statistics
-        total_users = users.filter(user_type='USER').count()
-        total_providers = users.filter(user_type='SERVICE_PROVIDER').count()
-        total_bookings = bookings.count()
-        avg_rating = reviews.aggregate(Avg('rating'))['rating__avg'] or 0
-
-        # Get bookings by date
-        bookings_by_date = bookings.values('date').annotate(
-            count=Count('id')
-        ).order_by('date')
-
-        # Get top providers by bookings
-        top_providers = bookings.values(
-            'service_provider__first_name',
-            'service_provider__last_name'
-        ).annotate(
-            count=Count('id')
-        ).order_by('-count')[:10]
-
-        # Get top rated providers
-        top_rated = reviews.values(
-            'service_provider__first_name',
-            'service_provider__last_name'
-        ).annotate(
-            avg_rating=Avg('rating')
-        ).order_by('-avg_rating')[:10]
-
-        # Format provider names
-        def format_name(provider):
-            return f"{provider['service_provider__first_name']} {provider['service_provider__last_name']}"
-
-        return JsonResponse({
+        extra_context.update({
             'statistics': {
-                'total_users': total_users,
-                'total_providers': total_providers,
-                'total_bookings': total_bookings,
-                'average_rating': round(avg_rating, 1)
+                'total_users': users.filter(user_type='USER').count(),
+                'total_providers': users.filter(user_type='SERVICE_PROVIDER').count(),
+                'total_bookings': bookings.count(),
+                'average_rating': round(reviews.aggregate(Avg('rating'))['rating__avg'] or 0, 1)
             },
-            'bookings_over_time': list(bookings_by_date),
+            'bookings_over_time': list(
+                bookings.values('date')
+                .annotate(count=Count('id'))
+                .order_by('date')
+            ),
             'top_providers': [
-                {'name': format_name(p), 'bookings': p['count']}
-                for p in top_providers
+                {
+                    'name': f"{p['service_provider__first_name']} {p['service_provider__last_name']}",
+                    'bookings': p['count']
+                }
+                for p in bookings.values(
+                    'service_provider__first_name',
+                    'service_provider__last_name'
+                ).annotate(count=Count('id')).order_by('-count')[:10]
             ],
             'top_rated': [
-                {'name': format_name(p), 'rating': round(p['avg_rating'], 1)}
-                for p in top_rated
+                {
+                    'name': f"{p['service_provider__first_name']} {p['service_provider__last_name']}",
+                    'rating': round(p['avg_rating'], 1)
+                }
+                for p in reviews.values(
+                    'service_provider__first_name',
+                    'service_provider__last_name'
+                ).annotate(avg_rating=Avg('rating')).order_by('-avg_rating')[:10]
             ]
         })
+
+        return super().changelist_view(request, extra_context=extra_context)
+
+    def has_module_permission(self, request):
+        return True
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_change_permission(self, request, obj=None):
+        return True
+
+    def has_delete_permission(self, request, obj=None):
+        return False

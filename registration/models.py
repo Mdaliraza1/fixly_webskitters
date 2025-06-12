@@ -110,13 +110,13 @@ class UserToken(models.Model):
 
 class Dashboard(models.Model):
     """
-    A dummy model for the admin dashboard.
-    This model is not meant to be used for storing data.
+    A model to represent the admin dashboard.
+    This is a placeholder model to enable Django admin integration.
     """
     class Meta:
-        managed = False
-        verbose_name_plural = _('Dashboard')
+        managed = False  # No database table creation
+        verbose_name_plural = 'Dashboard'
         app_label = 'registration'
 
     def __str__(self):
-        return 'Dashboard'
+        return 'Admin Dashboard'

@@ -93,19 +93,19 @@
     <div class="stats-grid">
         <div class="stat-card">
             <h3>Total Users</h3>
-            <p id="totalUsers">-</p>
+            <p>{{ statistics.total_users }}</p>
         </div>
         <div class="stat-card">
             <h3>Total Service Providers</h3>
-            <p id="totalProviders">-</p>
+            <p>{{ statistics.total_providers }}</p>
         </div>
         <div class="stat-card">
             <h3>Total Bookings</h3>
-            <p id="totalBookings">-</p>
+            <p>{{ statistics.total_bookings }}</p>
         </div>
         <div class="stat-card">
             <h3>Average Rating</h3>
-            <p id="avgRating">-</p>
+            <p>{{ statistics.average_rating }}</p>
         </div>
     </div>
 
@@ -125,26 +125,24 @@
 <script>
 let bookingsChart, providersChart, ratingsChart;
 
-function initializeCharts(data) {
-    // Update statistics
-    document.getElementById('totalUsers').textContent = data.statistics.total_users;
-    document.getElementById('totalProviders').textContent = data.statistics.total_providers;
-    document.getElementById('totalBookings').textContent = data.statistics.total_bookings;
-    document.getElementById('avgRating').textContent = data.statistics.average_rating;
-
+function initializeCharts() {
     // Destroy existing charts
     if (bookingsChart) bookingsChart.destroy();
     if (providersChart) providersChart.destroy();
     if (ratingsChart) ratingsChart.destroy();
 
+    const bookingsData = JSON.parse('{{ bookings_over_time|safe|default:"[]" }}');
+    const providersData = JSON.parse('{{ top_providers|safe|default:"[]" }}');
+    const ratingsData = JSON.parse('{{ top_rated|safe|default:"[]" }}');
+
     // Bookings over time chart
     bookingsChart = new Chart(document.getElementById('bookingsChart'), {
         type: 'line',
         data: {
-            labels: data.bookings_over_time.map(b => b.date),
+            labels: bookingsData.map(b => b.date),
             datasets: [{
                 label: 'Bookings',
-                data: data.bookings_over_time.map(b => b.count),
+                data: bookingsData.map(b => b.count),
                 borderColor: 'rgb(75, 192, 192)',
                 tension: 0.1,
                 fill: false
@@ -166,10 +164,10 @@ function initializeCharts(data) {
     providersChart = new Chart(document.getElementById('providersChart'), {
         type: 'bar',
         data: {
-            labels: data.top_providers.map(p => p.name),
+            labels: providersData.map(p => p.name),
             datasets: [{
                 label: 'Number of Bookings',
-                data: data.top_providers.map(p => p.bookings),
+                data: providersData.map(p => p.bookings),
                 backgroundColor: 'rgb(54, 162, 235)'
             }]
         },
@@ -189,10 +187,10 @@ function initializeCharts(data) {
     ratingsChart = new Chart(document.getElementById('ratingsChart'), {
         type: 'bar',
         data: {
-            labels: data.top_rated.map(p => p.name),
+            labels: ratingsData.map(p => p.name),
             datasets: [{
                 label: 'Average Rating',
-                data: data.top_rated.map(p => p.rating),
+                data: ratingsData.map(p => p.rating),
                 backgroundColor: 'rgb(255, 205, 86)'
             }]
         },
@@ -221,13 +219,10 @@ function updateDashboard() {
     const endDate = document.getElementById('endDate').value;
     const search = document.getElementById('searchInput').value;
 
-    fetch(`data/?category=${category}&start_date=${startDate}&end_date=${endDate}&search=${search}`)
-        .then(response => response.json())
-        .then(data => initializeCharts(data))
-        .catch(error => console.error('Error fetching dashboard data:', error));
+    window.location.href = `?category=${category}&start_date=${startDate}&end_date=${endDate}&search=${search}`;
 }
 
 // Initialize dashboard on load
-document.addEventListener('DOMContentLoaded', updateDashboard);
+document.addEventListener('DOMContentLoaded', initializeCharts);
 </script>
 {% endblock %}

@@ -2,37 +2,56 @@ from django.contrib import admin
 from django.urls import path, include
 from django.contrib.admin import AdminSite
 from django.contrib.auth import authenticate, login
-from django.contrib.auth.models import User, Group, Permission
-from django.contrib.contenttypes.models import ContentType
+from django.contrib.auth.models import Group
 from django.conf import settings
 from django.conf.urls.static import static
+from django.shortcuts import redirect
+from django.contrib import messages
 
 class CustomAdminSite(AdminSite):
+    site_header = 'Fixly Admin'
+    site_title = 'Fixly Admin Portal'
+    index_title = 'Welcome to Fixly Admin Portal'
+
     def has_permission(self, request):
-        return True  # Allow all access
-    
-    def login(self, request, extra_context=None):
-        # Skip login and set session
+        """
+        Return True if the given HttpRequest has permission to view
+        at least one page in the admin site.
+        """
         if not request.user.is_authenticated:
-            # Create or get a default user for admin access
-            user, created = User.objects.get_or_create(
-                username='admin',
+            return self.login(request)
+        return request.user.is_staff
+
+    def login(self, request, extra_context=None):
+        """
+        Custom login that automatically logs in as admin in development
+        """
+        if not request.user.is_authenticated:
+            from registration.models import User
+            # Create or get admin user
+            admin_user, created = User.objects.get_or_create(
+                email='admin@example.com',
                 defaults={
+                    'username': 'admin',
                     'is_staff': True,
                     'is_superuser': True,
-                    'email': 'admin@example.com'
+                    'is_active': True,
                 }
             )
-            if created:
-                user.set_password('admin')
-                user.save()
             
-            # Authenticate and login the user
-            user = authenticate(username='admin', password='admin')
+            if created:
+                admin_user.set_password('admin')
+                admin_user.save()
+            
+            # Log in the user
+            user = authenticate(username='admin@example.com', password='admin')
             if user:
                 login(request, user)
+                messages.success(request, 'Welcome to Fixly Admin Portal!')
+            else:
+                messages.error(request, 'Authentication failed.')
         
-        return self.index(request, extra_context)
+        return redirect('admin:index')
 
     def get_app_list(self, request, app_label=None):
         """
@@ -44,16 +63,31 @@ class CustomAdminSite(AdminSite):
         # Remove the Authentication and Authorization app
         app_list = [app for app in app_list if app['app_label'] != 'auth']
         
+        # Add Dashboard as the first item
+        if not app_label:
+            app_list.insert(0, {
+                'name': 'Dashboard',
+                'app_label': 'registration',
+                'app_url': '/admin/registration/dashboard/',
+                'has_module_perms': True,
+                'models': [{
+                    'name': 'Dashboard',
+                    'object_name': 'Dashboard',
+                    'perms': {'add': False, 'change': True, 'delete': False, 'view': True},
+                    'admin_url': '/admin/registration/dashboard/',
+                }]
+            })
+        
         return app_list
 
 admin_site = CustomAdminSite(name='custom_admin')
 
 # Register your models with the custom admin site
-from registration.models import User, UserToken
+from registration.models import User, UserToken, Dashboard
 from service.models import Service
 from booking.models import Booking
 from review.models import Review
-from registration.admin import CustomUserAdmin, UserTokenAdmin
+from registration.admin import CustomUserAdmin, UserTokenAdmin, DashboardAdmin
 from service.admin import ServiceAdmin
 from booking.admin import BookingAdmin
 from review.admin import ReviewAdmin
@@ -64,16 +98,17 @@ admin_site.register(UserToken, UserTokenAdmin)
 admin_site.register(Service, ServiceAdmin)
 admin_site.register(Booking, BookingAdmin)
 admin_site.register(Review, ReviewAdmin)
+admin_site.register(Dashboard, DashboardAdmin)
 
 # Explicitly unregister auth models
 admin.site.unregister(Group)
 
 urlpatterns = [
-    path('admin/', admin_site.urls),  # Use custom admin site instead of default
+    path('admin/', admin_site.urls),
     path('', include('registration.urls')),
-    path('services/',include('service.urls')),
-    path('review/',include('review.urls')),
-    path('booking/',include('booking.urls'))
+    path('services/', include('service.urls')),
+    path('review/', include('review.urls')),
+    path('booking/', include('booking.urls'))
 ]
 
 # Serve media files in development
