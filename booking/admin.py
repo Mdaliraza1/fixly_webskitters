@@ -9,7 +9,6 @@ class BookingAdmin(admin.ModelAdmin):
         'get_user_email',
         'get_provider_name',
         'get_provider_email',
-        'service',
         'date',
         'time_slot',
         'status',
@@ -26,7 +25,7 @@ class BookingAdmin(admin.ModelAdmin):
 
     fieldsets = (
         ('Booking Details', {
-            'fields': ('user', 'service_provider', 'service', 'date', 'time_slot')
+            'fields': ('user', 'service_provider', 'date', 'time_slot')
         }),
         ('Status Information', {
             'fields': ('status',),
