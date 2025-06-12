@@ -52,7 +52,7 @@ class User(AbstractUser):
     )
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['email']
+    REQUIRED_FIELDS = ['username', 'first_name', 'last_name', 'user_type', 'contact', 'location', 'category']
 
     def clean(self):
         if self.user_type == 'SERVICE_PROVIDER' and not self.category:

@@ -9,26 +9,14 @@ from django.utils.translation import gettext_lazy as _
 class CustomUserCreationForm(UserCreationForm):
     class Meta(UserCreationForm.Meta):
         model = User
-        fields = (
-            'email', 'username', 'first_name', 'last_name',
-            'user_type', 'contact', 'location', 'category'
-        )
-        exclude = ('groups', 'user_permissions')
+        fields = ('email', 'username', 'first_name', 'last_name', 'user_type', 'contact', 'location', 'category')
 
 class CustomUserChangeForm(UserChangeForm):
     class Meta(UserChangeForm.Meta):
         model = User
-        fields = (
-            'email', 'username', 'first_name', 'last_name',
-            'user_type', 'contact', 'location', 'category',
-            'is_active', 'is_staff', 'is_superuser'
-        )
-        exclude = ('groups', 'user_permissions')
+        fields = ('email', 'username', 'first_name', 'last_name', 'user_type', 'contact', 'location', 'category', 'gender', 'is_active', 'is_staff', 'is_superuser')
 
 class CustomAdminAuthenticationForm(AdminAuthenticationForm):
-    """
-    A custom authentication form used in the admin app.
-    """
     error_messages = {
         **AdminAuthenticationForm.error_messages,
         'invalid_login': _(
@@ -52,10 +40,7 @@ class CustomAdminAuthenticationForm(AdminAuthenticationForm):
 
     def confirm_login_allowed(self, user):
         if not user.is_active:
-            raise ValidationError(
-                self.error_messages['inactive'],
-                code='inactive',
-            )
+            raise ValidationError(self.error_messages['inactive'], code='inactive')
         if not user.is_staff:
             raise ValidationError(
                 _("This account doesn't have access to the admin. "
@@ -64,4 +49,4 @@ class CustomAdminAuthenticationForm(AdminAuthenticationForm):
             )
 
     def get_user(self):
-        return getattr(self, 'user_cache', None)
+        return self.user_cache if hasattr(self, 'user_cache') else None
