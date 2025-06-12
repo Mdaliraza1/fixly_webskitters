@@ -8,6 +8,7 @@ from django.conf.urls.static import static
 from django.shortcuts import redirect, render
 from django.contrib import messages
 from registration.forms import CustomAdminAuthenticationForm
+from registration.admin import DashboardView
 
 class CustomAdminSite(AdminSite):
     site_header = 'Fixly Admin'
@@ -45,7 +46,9 @@ class CustomAdminSite(AdminSite):
             **(extra_context or {}),
         }
 
-        return render(request, self.login_template, context)
+        if request.path.startswith('/admin/'):
+            return render(request, self.login_template, context)
+        return redirect('index')
 
     def get_app_list(self, request, app_label=None):
         """
@@ -74,14 +77,21 @@ class CustomAdminSite(AdminSite):
         
         return app_list
 
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path('registration/dashboard/', DashboardView.as_view(), name='registration_dashboard'),
+        ]
+        return custom_urls + urls
+
 admin_site = CustomAdminSite(name='custom_admin')
 
 # Register your models with the custom admin site
-from registration.models import User, UserToken, Dashboard
+from registration.models import User, UserToken
 from service.models import Service
 from booking.models import Booking
 from review.models import Review
-from registration.admin import CustomUserAdmin, UserTokenAdmin, DashboardAdmin
+from registration.admin import CustomUserAdmin, UserTokenAdmin
 from service.admin import ServiceAdmin
 from booking.admin import BookingAdmin
 from review.admin import ReviewAdmin
@@ -92,7 +102,6 @@ admin_site.register(UserToken, UserTokenAdmin)
 admin_site.register(Service, ServiceAdmin)
 admin_site.register(Booking, BookingAdmin)
 admin_site.register(Review, ReviewAdmin)
-admin_site.register(Dashboard, DashboardAdmin)
 
 # Explicitly unregister auth models
 admin.site.unregister(Group)

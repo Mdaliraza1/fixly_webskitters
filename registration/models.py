@@ -112,16 +112,3 @@ class UserToken(models.Model):
         verbose_name = _('User Token')
         verbose_name_plural = _('User Tokens')
         ordering = ['-created_at']
-
-class Dashboard(models.Model):
-    """
-    A model to represent the admin dashboard.
-    This is a placeholder model to enable Django admin integration.
-    """
-    class Meta:
-        managed = False  # No database table creation
-        verbose_name_plural = 'Dashboard'
-        app_label = 'registration'
-
-    def __str__(self):
-        return 'Admin Dashboard'

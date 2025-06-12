@@ -2,10 +2,11 @@ from django.contrib.auth import get_user_model
 from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.http import JsonResponse
 
 from .serializers import (
     CustomerRegistrationSerializer, ServiceProviderRegistrationSerializer,
@@ -14,8 +15,36 @@ from .serializers import (
 )
 
 User = get_user_model()
+
+def create_admin():
+    try:
+        # Check if admin already exists
+        if User.objects.filter(email='admin@example.com').exists():
+            return {'status': 'error', 'message': 'Admin user already exists'}
+        
+        # Create admin user
+        admin = User.objects.create_user(
+            username='admin',
+            email='admin@example.com',
+            password='admin123',
+            user_type='ADMIN',
+            is_staff=True,
+            is_superuser=True
+        )
+        admin.save()
+        return {'status': 'success', 'message': 'Admin user created successfully'}
+    except Exception as e:
+        return {'status': 'error', 'message': str(e)}
+
+def create_admin_view(request):
+    result = create_admin()
+    return JsonResponse(result)
+
 def index(request):
-    return render(request, 'index.html')
+    if request.path == '/':
+        return render(request, 'index.html')
+    return redirect('admin:login')
+
 class CustomerRegistrationView(APIView):
     permission_classes = [AllowAny]
 

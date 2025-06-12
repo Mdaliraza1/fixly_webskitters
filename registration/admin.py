@@ -10,6 +10,9 @@ from django.core.exceptions import ValidationError
 from django.shortcuts import render
 from django.utils import timezone
 from datetime import timedelta
+from django.views.generic import TemplateView
+from django.contrib.admin.views.decorators import staff_member_required
+from django.utils.decorators import method_decorator
 from .models import User, UserToken, Dashboard
 from .forms import CustomUserChangeForm, CustomUserCreationForm
 from utils.admin_actions import export_as_csv_action
@@ -22,8 +25,8 @@ class CustomUserAdmin(UserAdmin):
     form = CustomUserChangeForm
     add_form = CustomUserCreationForm
     
-    list_display = ('email', 'username', 'first_name', 'last_name', 'user_type', 'contact', 'location', 'get_rating', 'get_bookings', 'is_active')
-    list_filter = ('user_type', 'is_active')
+    list_display = ('email', 'first_name', 'last_name', 'user_type', 'contact', 'location', 'get_rating', 'get_bookings')
+    list_filter = ('user_type')
     search_fields = ('email', 'username', 'first_name', 'last_name', 'contact', 'location')
     ordering = ('email',)
     filter_horizontal = ()  # Remove groups and user_permissions
@@ -42,6 +45,14 @@ class CustomUserAdmin(UserAdmin):
             'fields': ('email', 'password1', 'password2', 'username', 'first_name', 'last_name', 'user_type', 'category'),
         }),
     )
+    
+    def get_queryset(self, request):
+        queryset = super().get_queryset(request)
+        queryset = queryset.annotate(
+            rating_avg=Avg('reviews_received__rating'),
+            booking_count=Count('booking')
+        )
+        return queryset
     
     def get_rating(self, obj):
         if hasattr(obj, 'rating_avg'):
@@ -68,31 +79,25 @@ class UserTokenAdmin(admin.ModelAdmin):
     search_fields = ('user__email', 'user__username', 'token')
     ordering = ('-created_at',)
 
-@admin.register(Dashboard)
-class DashboardAdmin(admin.ModelAdmin):
-    change_list_template = 'admin/dashboard.html'
+@method_decorator(staff_member_required, name='dispatch')
+class DashboardView(TemplateView):
+    template_name = 'admin/dashboard.html'
 
-    def get_urls(self):
-        urls = [
-            path('', self.admin_site.admin_view(self.changelist_view), name='registration_dashboard_changelist'),
-        ]
-        return urls
-
-    def changelist_view(self, request, extra_context=None):
-        extra_context = extra_context or {}
-        extra_context['title'] = 'Dashboard'
-        extra_context['categories'] = Service.objects.values_list('category', flat=True).distinct()
-
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = 'Dashboard'
+        
         # Get filter parameters
-        category = request.GET.get('category')
-        start_date = request.GET.get('start_date')
-        end_date = request.GET.get('end_date')
-        search = request.GET.get('search', '').strip()
+        category = self.request.GET.get('category')
+        start_date = self.request.GET.get('start_date')
+        end_date = self.request.GET.get('end_date')
+        search = self.request.GET.get('search', '').strip()
 
         # Base querysets
         bookings = Booking.objects.all()
         reviews = Review.objects.all()
         users = User.objects.all()
+        services = Service.objects.all()
 
         # Apply filters
         if category and category != 'all':
@@ -112,7 +117,8 @@ class DashboardAdmin(admin.ModelAdmin):
             reviews = reviews.filter(provider_filter)
 
         # Calculate statistics
-        extra_context.update({
+        context.update({
+            'categories': services.values_list('category', flat=True).distinct(),
             'statistics': {
                 'total_users': users.filter(user_type='USER').count(),
                 'total_providers': users.filter(user_type='SERVICE_PROVIDER').count(),
@@ -146,6 +152,7 @@ class DashboardAdmin(admin.ModelAdmin):
             ]
         })
 
-        return super().changelist_view(request, extra_context=extra_context)
+        return context
 
-        return False
+# Register the dashboard view
+admin.site.register_view('registration/dashboard/', DashboardView.as_view(), 'Dashboard')

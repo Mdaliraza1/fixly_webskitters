@@ -1,58 +1,31 @@
 {% extends "admin/base_site.html" %}
 {% load i18n static %}
 
-{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static "admin/css/login.css" %}">
+{% block extrastyle %}{{ block.super }}
+<link rel="stylesheet" href="{% static 'admin/css/login.css' %}">
 {{ form.media }}
 <style>
 .login #container {
     background: white;
-    border: 1px solid #eee;
+    border: 1px solid #eaeaea;
     border-radius: 4px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    margin: 60px auto;
-    padding: 30px;
+    overflow: hidden;
+    width: 28em;
+    min-width: 300px;
+    margin: 100px auto;
+    height: auto;
+    padding: 20px;
 }
 .login .submit-row {
-    padding: 20px 0 0 0;
+    padding: 1em 0 0 0;
     margin: 0;
-    border: none;
-    background: none;
     text-align: center;
-}
-.login .submit-row input {
-    display: block;
-    width: 100%;
-    padding: 10px;
-    background: var(--primary);
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-}
-.login .form-row {
-    padding: 4px 0;
-    float: none;
-    border: none;
-}
-.login .form-row label {
-    display: block;
-    line-height: 2;
-    font-size: 14px;
-    color: #666;
 }
 .login .form-row #id_username,
 .login .form-row #id_password {
-    width: 100%;
     padding: 8px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-}
-.login .errornote {
-    background: #fff0f0;
-    border: 1px solid #ffb6b6;
-    border-radius: 4px;
-    padding: 10px 15px;
-    margin-bottom: 20px;
+    width: 100%;
+    box-sizing: border-box;
 }
 </style>
 {% endblock %}
@@ -72,7 +45,7 @@
 {% block content %}
 {% if form.errors and not form.non_field_errors %}
 <p class="errornote">
-{% blocktranslate count counter=form.errors.items|length %}Please correct the error below.{% plural %}Please correct the errors below.{% endblocktranslate %}
+{% if form.errors.items|length == 1 %}{% translate "Please correct the error below." %}{% else %}{% translate "Please correct the errors below." %}{% endif %}
 </p>
 {% endif %}
 
@@ -104,15 +77,10 @@
     {{ form.password.label_tag }} {{ form.password }}
     <input type="hidden" name="next" value="{{ next }}">
   </div>
-  {% url 'admin_password_reset' as password_reset_url %}
-  {% if password_reset_url %}
-  <div class="password-reset-link">
-    <a href="{{ password_reset_url }}">{% translate 'Forgotten your password or username?' %}</a>
-  </div>
-  {% endif %}
   <div class="submit-row">
     <input type="submit" value="{% translate 'Log in' %}">
   </div>
 </form>
+
 </div>
 {% endblock %} 
