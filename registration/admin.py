@@ -90,10 +90,11 @@ class DashboardView(TemplateView):
         users = User.objects.all()
         services = Service.objects.all()
 
-        # 📂 Filter bookings/reviews by category using service relationships
         if category and category != 'all':
-            bookings = bookings.filter(service_provider__services__category=category)
-            reviews = reviews.filter(service_provider__services__category=category)
+            provider_ids = Service.objects.filter(category=category).values_list('provider_id', flat=True).distinct()
+            bookings = bookings.filter(service_provider__id__in=provider_ids)
+            reviews = reviews.filter(service_provider__id__in=provider_ids)
+
 
         if start_date:
             bookings = bookings.filter(date__gte=start_date)
