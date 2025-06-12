@@ -4,52 +4,60 @@
 {% block title %}Fixly Admin Dashboard{% endblock %}
 
 {% block content %}
-<div class="dashboard-container" style="padding: 20px;">
+<div class="dashboard-container" style="padding: 20px; font-family: sans-serif;">
 
-  <h1 style="font-size: 26px; margin-bottom: 20px;">
-    📊 Fixly Admin Dashboard
-  </h1>
+  <h1 style="font-size: 28px; margin-bottom: 25px;">📊 Fixly Admin Dashboard</h1>
 
   <!-- Filters -->
   <form method="get" class="filter-form"
-    style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 25px;">
-    <label><strong>📅 Date Range:</strong></label>
-    <input type="date" name="start_date" value="{{ request.GET.start_date }}" class="vDateField" />
-    <input type="date" name="end_date" value="{{ request.GET.end_date }}" class="vDateField" />
+    style="display: flex; flex-wrap: wrap; gap: 15px; align-items: center; margin-bottom: 30px;">
 
-    <label><strong>🔍 Search Provider:</strong></label>
-    <input type="text" name="search" value="{{ request.GET.search }}" placeholder="Search by name/email" />
+    <div>
+      <label><strong>📅 Date Range:</strong></label><br>
+      <input type="date" name="start_date" value="{{ request.GET.start_date }}" class="vDateField" />
+      <input type="date" name="end_date" value="{{ request.GET.end_date }}" class="vDateField" />
+    </div>
 
-    <label><strong>📁 Category:</strong></label>
-    <select name="category">
-      <option value="all" {% if request.GET.category|default:'all' == 'all' %}selected{% endif %}>All</option>
-      {% for cat in categories %}
-        <option value="{{ cat }}" {% if cat == request.GET.category %}selected{% endif %}>{{ cat }}</option>
-      {% endfor %}
-    </select>
-    
+    <div>
+      <label><strong>🔍 Search Provider:</strong></label><br>
+      <input type="text" name="search" value="{{ request.GET.search }}" placeholder="Name or email" />
+    </div>
 
-    <label><strong>📈 Chart Type:</strong></label>
-    <select name="chart_type">
-      <option value="line" {% if request.GET.chart_type=="line" %}selected{% endif %}>Line</option>
-      <option value="bar" {% if request.GET.chart_type=="bar" %}selected{% endif %}>Bar</option>
-      <option value="pie" {% if request.GET.chart_type=="pie" %}selected{% endif %}>Pie</option>
-    </select>
+    <div>
+      <label><strong>📁 Category:</strong></label><br>
+      <select name="category">
+        <option value="all" {% if request.GET.category|default:"all"=="all" %}selected{% endif %}>All</option>
+        {% for cat in categories %}
+        <option value="{{ cat }}" {% if cat==request.GET.category %}selected{% endif %}>{{ cat }}</option>
+        {% endfor %}
+      </select>
+    </div>
 
-    <button type="submit" class="btn btn-primary">Apply</button>
+    <div>
+      <label><strong>📈 Chart Type:</strong></label><br>
+      <select name="chart_type">
+        <option value="line" {% if request.GET.chart_type|default:"line"=="line" %}selected{% endif %}>Line</option>
+        <option value="bar" {% if request.GET.chart_type=="bar" %}selected{% endif %}>Bar</option>
+        <option value="pie" {% if request.GET.chart_type=="pie" %}selected{% endif %}>Pie</option>
+      </select>
+    </div>
+
+    <div style="margin-top: 24px;">
+      <button type="submit" class="btn btn-primary">Apply</button>
+    </div>
   </form>
 
   <!-- Key Stats -->
-  <div style="display: flex; gap: 40px; margin-bottom: 30px;">
-    <div><strong>📌 Total Users:</strong> {{ statistics.total_users }}</div>
+  <div style="display: flex; flex-wrap: wrap; gap: 30px; margin-bottom: 35px; font-size: 16px;">
+    <div><strong>👤 Total Users:</strong> {{ statistics.total_users }}</div>
     <div><strong>🧑‍🔧 Total Providers:</strong> {{ statistics.total_providers }}</div>
     <div><strong>📦 Total Bookings:</strong> {{ statistics.total_bookings }}</div>
     <div><strong>⭐ Average Rating:</strong> {{ statistics.average_rating }}</div>
   </div>
 
   <!-- Chart -->
-  <div style="width: 100%; max-width: 900px; margin-bottom: 40px;">
-    <canvas id="bookingsChart" height="120"></canvas>
+  <div style="width: 100%; max-width: 1000px; margin: auto; margin-bottom: 40px;">
+    <canvas id="bookingsChart" height="140"></canvas>
   </div>
 
   <!-- Top Providers and Ratings -->
@@ -60,7 +68,7 @@
       <h3>🏆 Top 5 Providers (by Bookings)</h3>
       <ul>
         {% for provider in top_providers %}
-        <li>{{ provider.name }} - {{ provider.bookings }} bookings</li>
+        <li>{{ provider.name }} – {{ provider.bookings }} bookings</li>
         {% empty %}
         <li>No data available</li>
         {% endfor %}
@@ -72,7 +80,7 @@
       <h3>⭐ Top 5 Rated Providers</h3>
       <ul>
         {% for provider in top_rated %}
-        <li>{{ provider.name }} - {{ provider.rating }} stars</li>
+        <li>{{ provider.name }} – {{ provider.rating }} stars</li>
         {% empty %}
         <li>No data available</li>
         {% endfor %}
@@ -80,33 +88,46 @@
     </div>
 
   </div>
-
 </div>
 
-<!-- Chart.js -->
+<!-- Chart.js Script -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
   const ctx = document.getElementById('bookingsChart').getContext('2d');
   const chartType = "{{ request.GET.chart_type|default:'line' }}";
+
   const data = {
     labels: {{ bookings_over_time| map(attribute = 'date') | list | safe }},
   datasets: [{
     label: 'Bookings Over Time',
     data: {{ bookings_over_time| map(attribute = 'count') | list | safe }},
-    backgroundColor: 'rgba(0, 123, 255, 0.5)',
+    backgroundColor: chartType === 'pie' ? [
+      'rgba(255, 99, 132, 0.5)',
+      'rgba(54, 162, 235, 0.5)',
+      'rgba(255, 206, 86, 0.5)',
+      'rgba(75, 192, 192, 0.5)',
+      'rgba(153, 102, 255, 0.5)'
+    ] : 'rgba(0, 123, 255, 0.5)',
     borderColor: 'rgba(0, 123, 255, 1)',
     borderWidth: 2,
     fill: chartType === 'line'
-        }]
-    };
+    }]
+  };
 
   const config = {
     type: chartType,
     data: data,
     options: {
       responsive: true,
-      scales: {
-        y: { beginAtZero: true }
+      plugins: {
+        legend: {
+          display: chartType !== 'pie'
+        }
+      },
+      scales: chartType === 'pie' ? {} : {
+        y: {
+          beginAtZero: true
+        }
       }
     }
   };
