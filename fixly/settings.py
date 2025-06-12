@@ -219,3 +219,14 @@ JAZZMIN_UI_TWEAKS = {
     "sidebar_nav_legacy_style": False,
     "sidebar_nav_child_indent": True,
 }
+"custom_links": {
+    "service": [
+        {
+            "name": "Dashboard Analytics",
+            "url": "admin:dashboard-data",
+            "icon": "fas fa-chart-line",
+            "permissions": ["service.view_service"],
+        }
+    ],
+},
+
