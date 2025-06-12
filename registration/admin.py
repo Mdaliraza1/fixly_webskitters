@@ -127,3 +127,8 @@ class DashboardView(TemplateView):
         })
 
         return context
+from .models import UserToken
+
+@admin.register(UserToken)
+class UserTokenAdmin(admin.ModelAdmin):
+    list_display = ['user', 'token', 'created_at']
