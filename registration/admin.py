@@ -153,6 +153,3 @@ class DashboardView(TemplateView):
         })
 
         return context
-
-# Register the dashboard view
-admin.site.register_view('registration/dashboard/', DashboardView.as_view(), 'Dashboard')
