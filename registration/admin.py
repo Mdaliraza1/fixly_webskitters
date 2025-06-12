@@ -6,7 +6,7 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.utils.decorators import method_decorator
 from django.views.generic import TemplateView
 
-from .models import User, UserToken
+from .models import User
 from .forms import CustomUserChangeForm, CustomUserCreationForm
 from utils.admin_actions import export_as_csv_action
 
@@ -160,6 +160,4 @@ class DashboardView(TemplateView):
         return context
 
 
-@admin.register(UserToken)
-class UserTokenAdmin(admin.ModelAdmin):
-    list_display = ['user', 'token', 'created_at']
+
