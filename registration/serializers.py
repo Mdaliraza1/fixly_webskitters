@@ -2,10 +2,12 @@ from rest_framework import serializers
 from .models import User
 import re
 
+
 def validate_email_format(email):
     if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
         raise serializers.ValidationError("Invalid email format.")
     return email
+
 
 def validate_password_strength(password):
     if len(password) < 8:
@@ -13,12 +15,13 @@ def validate_password_strength(password):
     if not re.search(r'[A-Z]', password):
         raise serializers.ValidationError("Password must include at least one uppercase letter.")
     if not re.search(r"[,\./\?;'!@#$%&*~]", password):
-        raise serializers.ValidationError("Password must include at least one special character: ,./?;'!@#$%&*~")
+        raise serializers.ValidationError("Password must include at least one special character.")
     if not re.search(r'[a-z]', password):
         raise serializers.ValidationError("Password must include at least one lowercase letter.")
     if not re.search(r'\d', password):
         raise serializers.ValidationError("Password must include at least one digit.")
     return password
+
 
 def validate_contact_format(contact):
     if not re.fullmatch(r'[6-9]\d{9}', contact):
@@ -34,22 +37,12 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class ProviderSerializer(serializers.ModelSerializer):
-    location_display = serializers.SerializerMethodField()
-    category_name = serializers.SerializerMethodField()
-
     class Meta:
         model = User
         fields = [
             'id', 'email', 'first_name', 'last_name',
-            'contact', 'gender', 'location', 'location_display',
-            'category', 'category_name'
+            'contact', 'gender', 'location', 'category'
         ]
-
-    def get_location_display(self, obj):
-        return obj.location if obj.location else None
-
-    def get_category_name(self, obj):
-        return obj.category.category if obj.category else None
 
 
 class CustomerRegistrationSerializer(serializers.ModelSerializer):
@@ -90,7 +83,6 @@ class CustomerRegistrationSerializer(serializers.ModelSerializer):
         password = validated_data.pop('password')
         validated_data['username'] = validated_data['email']
         validated_data['user_type'] = 'USER'
-
         user = User(**validated_data)
         user.set_password(password)
         user.save()
@@ -99,19 +91,15 @@ class CustomerRegistrationSerializer(serializers.ModelSerializer):
 
 class ServiceProviderRegistrationSerializer(serializers.ModelSerializer):
     confirm_password = serializers.CharField(write_only=True)
-    category_name = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = User
         fields = [
             'email', 'first_name', 'last_name', 'password',
             'confirm_password', 'contact', 'gender',
-            'location', 'category', 'category_name'
+            'location', 'category'
         ]
         extra_kwargs = {'password': {'write_only': True}}
-
-    def get_category_name(self, obj):
-        return obj.category.category if obj.category else None
 
     def validate_email(self, value):
         validate_email_format(value)
@@ -140,7 +128,6 @@ class ServiceProviderRegistrationSerializer(serializers.ModelSerializer):
         password = validated_data.pop('password')
         validated_data['username'] = validated_data['email']
         validated_data['user_type'] = 'SERVICE_PROVIDER'
-
         user = User(**validated_data)
         user.set_password(password)
         user.save()
@@ -190,8 +177,7 @@ class ServiceProviderUpdateSerializer(serializers.ModelSerializer):
             validate_contact_format(data['contact'])
             if User.objects.exclude(id=user.id).filter(contact=data['contact']).exists():
                 raise serializers.ValidationError("Contact number already in use.")
-        category = data.get('category') or getattr(user, 'category', None)
-        if not category:
+        if not data.get('category') and not user.category:
             raise serializers.ValidationError("Category is required for service providers.")
         return data
 
