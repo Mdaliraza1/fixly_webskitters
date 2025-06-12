@@ -31,15 +31,26 @@
           <option value="{{ cat }}" {% if cat == request.GET.category %}selected{% endif %}>{{ cat }}</option>
         {% endfor %}
       </select>
-      
     </div>
 
     <div>
       <label><strong>📈 Chart Type:</strong></label><br>
       <select name="chart_type">
-        <option value="line" {% if request.GET.chart_type|default:"line"=="line" %}selected{% endif %}>Line</option>
-        <option value="bar" {% if request.GET.chart_type=="bar" %}selected{% endif %}>Bar</option>
-        <option value="pie" {% if request.GET.chart_type=="pie" %}selected{% endif %}>Pie</option>
+        <option value="line"
+          {% if request.GET.chart_type %}
+            {% if request.GET.chart_type == "line" %}selected{% endif %}
+          {% else %}
+            selected
+          {% endif %}
+        >Line</option>
+
+        <option value="bar"
+          {% if request.GET.chart_type == "bar" %}selected{% endif %}
+        >Bar</option>
+
+        <option value="pie"
+          {% if request.GET.chart_type == "pie" %}selected{% endif %}
+        >Pie</option>
       </select>
     </div>
 
@@ -69,9 +80,9 @@
       <h3>🏆 Top 5 Providers (by Bookings)</h3>
       <ul>
         {% for provider in top_providers %}
-        <li>{{ provider.name }} – {{ provider.bookings }} bookings</li>
+          <li>{{ provider.name }} – {{ provider.bookings }} bookings</li>
         {% empty %}
-        <li>No data available</li>
+          <li>No data available</li>
         {% endfor %}
       </ul>
     </div>
@@ -81,9 +92,9 @@
       <h3>⭐ Top 5 Rated Providers</h3>
       <ul>
         {% for provider in top_rated %}
-        <li>{{ provider.name }} – {{ provider.rating }} stars</li>
+          <li>{{ provider.name }} – {{ provider.rating }} stars</li>
         {% empty %}
-        <li>No data available</li>
+          <li>No data available</li>
         {% endfor %}
       </ul>
     </div>
@@ -98,20 +109,20 @@
   const chartType = "{{ request.GET.chart_type|default:'line' }}";
 
   const data = {
-    labels: {{ bookings_over_time| map(attribute = 'date') | list | safe }},
-  datasets: [{
-    label: 'Bookings Over Time',
-    data: {{ bookings_over_time| map(attribute = 'count') | list | safe }},
-    backgroundColor: chartType === 'pie' ? [
-      'rgba(255, 99, 132, 0.5)',
-      'rgba(54, 162, 235, 0.5)',
-      'rgba(255, 206, 86, 0.5)',
-      'rgba(75, 192, 192, 0.5)',
-      'rgba(153, 102, 255, 0.5)'
-    ] : 'rgba(0, 123, 255, 0.5)',
-    borderColor: 'rgba(0, 123, 255, 1)',
-    borderWidth: 2,
-    fill: chartType === 'line'
+    labels: {{ bookings_over_time | map(attribute='date') | list | safe }},
+    datasets: [{
+      label: 'Bookings Over Time',
+      data: {{ bookings_over_time | map(attribute='count') | list | safe }},
+      backgroundColor: chartType === 'pie' ? [
+        'rgba(255, 99, 132, 0.5)',
+        'rgba(54, 162, 235, 0.5)',
+        'rgba(255, 206, 86, 0.5)',
+        'rgba(75, 192, 192, 0.5)',
+        'rgba(153, 102, 255, 0.5)'
+      ] : 'rgba(0, 123, 255, 0.5)',
+      borderColor: 'rgba(0, 123, 255, 1)',
+      borderWidth: 2,
+      fill: chartType === 'line'
     }]
   };
 
