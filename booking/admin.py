@@ -32,7 +32,7 @@ class BookingAdmin(admin.ModelAdmin):
             'classes': ('collapse',)
         }),
     )
-
+    fields = ('user', 'service', 'service_provider', 'date', 'time_slot')
     def get_readonly_fields(self, request, obj=None):
         if obj:  # editing an existing object
             return ('user', 'service_provider', 'service', 'date', 'time_slot')
