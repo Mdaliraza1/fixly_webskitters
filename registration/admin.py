@@ -1,5 +1,4 @@
 from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin
 from django.db.models import Count, Avg
 from django.urls import path
 from django.http import JsonResponse
@@ -12,25 +11,23 @@ from booking.models import Booking
 from review.models import Review
 
 @admin.register(User)
-class CustomUserAdmin(UserAdmin):
+class CustomUserAdmin(admin.ModelAdmin):
     list_display = ('email', 'first_name', 'last_name', 'user_type', 'contact', 'location', 'get_rating', 'get_bookings')
-    list_filter = ('user_type', 'is_active', 'is_staff', 'gender', 'category')
+    list_filter = ('user_type', 'gender', 'category')
     search_fields = ('email', 'first_name', 'last_name', 'contact', 'location')
     ordering = ('email',)
     actions = [export_as_csv_action()]
 
     fieldsets = (
-        (None, {'fields': ('email', 'password')}),
-        ('Personal info', {'fields': ('first_name', 'last_name', 'contact', 'gender', 'location')}),
+        ('Personal info', {'fields': ('first_name', 'last_name', 'email', 'contact', 'gender', 'location')}),
         ('Service Provider Info', {'fields': ('category',), 'classes': ('collapse',)}),
-        ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'user_type', 'groups', 'user_permissions')}),
-        ('Important dates', {'fields': ('last_login', 'date_joined')}),
+        ('Type', {'fields': ('user_type',)}),
     )
     
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('email', 'password1', 'password2', 'first_name', 'last_name', 'user_type'),
+            'fields': ('email', 'first_name', 'last_name', 'user_type'),
         }),
     )
 

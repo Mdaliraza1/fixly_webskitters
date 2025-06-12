@@ -1,8 +1,7 @@
-from django.contrib.auth.models import AbstractUser
 from django.db import models
 from service.models import Service
 
-class User(AbstractUser):
+class User(models.Model):
     USER_TYPE_CHOICES = (
         ('USER', 'User'),
         ('SERVICE_PROVIDER', 'Service Provider'),
@@ -14,11 +13,9 @@ class User(AbstractUser):
     contact = models.CharField(max_length=15, unique=True)
     gender = models.CharField(max_length=10)
     location = models.CharField(max_length=100, blank=True, null=True)
-    category = models.ForeignKey(Service, on_delete=models.CASCADE, null=True, blank=True, related_name='SERVICE_PROVIDER_CATEGORY')  # Only for service providers
+    category = models.ForeignKey(Service, on_delete=models.CASCADE, null=True, blank=True, related_name='SERVICE_PROVIDER_CATEGORY')
     user_type = models.CharField(max_length=20, choices=USER_TYPE_CHOICES)
-
-    USERNAME_FIELD = 'email'  # Email is used for authentication
-    REQUIRED_FIELDS = ['username', 'first_name', 'last_name']  # Needed when creating superuser
+    date_joined = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return self.email
