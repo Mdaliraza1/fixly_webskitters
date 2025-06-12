@@ -8,27 +8,22 @@ from django.conf.urls.static import static
 from django.shortcuts import redirect
 from django.contrib import messages
 
+from registration.models import Dashboard
+from registration.admin import DashboardAdmin
+
 class CustomAdminSite(AdminSite):
     site_header = 'Fixly Admin'
     site_title = 'Fixly Admin Portal'
     index_title = 'Welcome to Fixly Admin Portal'
 
     def has_permission(self, request):
-        """
-        Return True if the given HttpRequest has permission to view
-        at least one page in the admin site.
-        """
         if not request.user.is_authenticated:
             return self.login(request)
         return request.user.is_staff
 
     def login(self, request, extra_context=None):
-        """
-        Custom login that automatically logs in as admin in development
-        """
         if not request.user.is_authenticated:
             from registration.models import User
-            # Create or get admin user
             admin_user, created = User.objects.get_or_create(
                 email='admin@example.com',
                 defaults={
@@ -38,32 +33,29 @@ class CustomAdminSite(AdminSite):
                     'is_active': True,
                 }
             )
-            
             if created:
                 admin_user.set_password('admin')
                 admin_user.save()
-            
-            # Log in the user
+
             user = authenticate(username='admin@example.com', password='admin')
             if user:
                 login(request, user)
                 messages.success(request, 'Welcome to Fixly Admin Portal!')
             else:
                 messages.error(request, 'Authentication failed.')
-        
+
         return redirect('admin:index')
 
+    def index(self, request, extra_context=None):
+        """
+        Override the default admin index view to show the dashboard.
+        """
+        dashboard_admin = DashboardAdmin(Dashboard, self)
+        return dashboard_admin.changelist_view(request)
+
     def get_app_list(self, request, app_label=None):
-        """
-        Return a sorted list of all the installed apps that have been
-        registered in this site.
-        """
         app_list = super().get_app_list(request, app_label)
-        
-        # Remove the Authentication and Authorization app
         app_list = [app for app in app_list if app['app_label'] != 'auth']
-        
-        # Add Dashboard as the first item
         if not app_label:
             app_list.insert(0, {
                 'name': 'Dashboard',
@@ -77,10 +69,8 @@ class CustomAdminSite(AdminSite):
                     'admin_url': '/admin/registration/dashboard/',
                 }]
             })
-        
         return app_list
 
-admin_site = CustomAdminSite(name='custom_admin')
 
 # Register your models with the custom admin site
 from registration.models import User, UserToken, Dashboard

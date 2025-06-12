@@ -1,0 +1,118 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+{% block title %}Dashboard | {{ block.super }}{% endblock %}
+
+{% block content %}
+<h1>📊 Fixly Admin Dashboard</h1>
+
+<form method="get" style="margin-bottom: 20px;">
+  <div>
+    <label>📅 Date Range:</label>
+    <input type="date" name="start_date" value="{{ request.GET.start_date }}">
+    <input type="date" name="end_date" value="{{ request.GET.end_date }}">
+  </div>
+  <div>
+    <label>🔍 Search Provider:</label>
+    <input type="text" name="search" value="{{ request.GET.search }}">
+  </div>
+  <div>
+    <label>📂 Category:</label>
+    <select name="category">
+      <option value="all">All</option>
+      {% for cat in categories %}
+        <option value="{{ cat }}" {% if request.GET.category == cat %}selected{% endif %}>{{ cat }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label>📈 Chart Type:</label>
+    <select id="chartType">
+      <option value="line">Line</option>
+      <option value="bar">Bar</option>
+      <option value="pie">Pie</option>
+    </select>
+  </div>
+  <button type="submit">Apply</button>
+</form>
+
+<hr>
+
+<h2>📌 Key Stats</h2>
+<ul>
+  <li>Total Users: <strong>{{ statistics.total_users }}</strong></li>
+  <li>Total Providers: <strong>{{ statistics.total_providers }}</strong></li>
+  <li>Total Bookings: <strong>{{ statistics.total_bookings }}</strong></li>
+  <li>Average Rating: <strong>{{ statistics.average_rating }}</strong></li>
+</ul>
+
+<hr>
+
+<canvas id="bookingChart" height="120"></canvas>
+
+<h3>🏆 Top 5 Providers (by Bookings)</h3>
+<ul>
+  {% for p in top_providers %}
+    <li>{{ p.name }} - {{ p.bookings }} bookings</li>
+  {% empty %}
+    <li>No data available</li>
+  {% endfor %}
+</ul>
+
+<h3>⭐ Top 5 Rated Providers</h3>
+<ul>
+  {% for p in top_rated %}
+    <li>{{ p.name }} - {{ p.rating }} stars</li>
+  {% empty %}
+    <li>No reviews yet</li>
+  {% endfor %}
+</ul>
+{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block extrajs %}
+<script>
+  const chartData = {{ bookings_over_time|safe }};
+  const chartTypeSelector = document.getElementById('chartType');
+  let currentChart;
+
+  function renderChart(type) {
+    const ctx = document.getElementById('bookingChart').getContext('2d');
+    const labels = chartData.map(b => b.date);
+    const counts = chartData.map(b => b.count);
+
+    if (currentChart) currentChart.destroy();
+
+    currentChart = new Chart(ctx, {
+      type,
+      data: {
+        labels,
+        datasets: [{
+          label: 'Bookings Over Time',
+          data: counts,
+          borderColor: '#4e73df',
+          backgroundColor: 'rgba(78, 115, 223, 0.2)',
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: true },
+        },
+        scales: {
+          y: { beginAtZero: true }
+        }
+      }
+    });
+  }
+
+  chartTypeSelector.addEventListener('change', e => {
+    renderChart(e.target.value);
+  });
+
+  renderChart('line');
+</script>
+{% endblock %}
