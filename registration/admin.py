@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin
 from django.db.models import Count, Avg
 from django.urls import path
 from django.http import JsonResponse
@@ -11,23 +12,25 @@ from booking.models import Booking
 from review.models import Review
 
 @admin.register(User)
-class CustomUserAdmin(admin.ModelAdmin):
+class CustomUserAdmin(UserAdmin):
     list_display = ('email', 'first_name', 'last_name', 'user_type', 'contact', 'location', 'get_rating', 'get_bookings')
     list_filter = ('user_type', 'gender', 'category')
     search_fields = ('email', 'first_name', 'last_name', 'contact', 'location')
     ordering = ('email',)
     actions = [export_as_csv_action()]
+    filter_horizontal = ()  # Remove the groups and user permissions widgets
 
     fieldsets = (
         ('Personal info', {'fields': ('first_name', 'last_name', 'email', 'contact', 'gender', 'location')}),
         ('Service Provider Info', {'fields': ('category',), 'classes': ('collapse',)}),
+        ('Account Info', {'fields': ('username', 'password'), 'classes': ('collapse',)}),
         ('Type', {'fields': ('user_type',)}),
     )
     
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
-            'fields': ('email', 'first_name', 'last_name', 'user_type'),
+            'fields': ('email', 'username', 'password1', 'password2', 'first_name', 'last_name', 'user_type'),
         }),
     )
 
@@ -49,6 +52,11 @@ class CustomUserAdmin(admin.ModelAdmin):
             return count
         return 0
     get_bookings.short_description = 'Bookings'
+
+    def get_readonly_fields(self, request, obj=None):
+        if obj:  # editing an existing object
+            return ('email',)
+        return ()
 
 @admin.register(UserToken)
 class UserTokenAdmin(admin.ModelAdmin):

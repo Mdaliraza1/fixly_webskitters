@@ -1,21 +1,26 @@
+from django.contrib.auth.models import AbstractUser
 from django.db import models
 from service.models import Service
 
-class User(models.Model):
+class User(AbstractUser):
     USER_TYPE_CHOICES = (
         ('USER', 'User'),
         ('SERVICE_PROVIDER', 'Service Provider'),
     )
 
-    first_name = models.CharField(max_length=255)
-    last_name = models.CharField(max_length=255)
     email = models.EmailField(unique=True)
     contact = models.CharField(max_length=15, unique=True)
     gender = models.CharField(max_length=10)
     location = models.CharField(max_length=100, blank=True, null=True)
     category = models.ForeignKey(Service, on_delete=models.CASCADE, null=True, blank=True, related_name='SERVICE_PROVIDER_CATEGORY')
     user_type = models.CharField(max_length=20, choices=USER_TYPE_CHOICES)
-    date_joined = models.DateTimeField(auto_now_add=True)
+
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = ['username', 'first_name', 'last_name']
+
+    # Remove group-related fields
+    groups = None
+    user_permissions = None
 
     def __str__(self):
         return self.email
