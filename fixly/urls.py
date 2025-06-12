@@ -68,9 +68,9 @@ class CustomAdminSite(AdminSite):
                 'app_url': '/admin/registration/dashboard/',
                 'has_module_perms': True,
                 'models': [{
-                    'name': 'Dashboard',
-                    'object_name': 'Dashboard',
-                    'perms': {'add': False, 'change': True, 'delete': False, 'view': True},
+                    'name': 'Statistics',
+                    'object_name': 'Statistics',
+                    'perms': {'add': False, 'change': False, 'delete': False, 'view': True},
                     'admin_url': '/admin/registration/dashboard/',
                 }]
             })
