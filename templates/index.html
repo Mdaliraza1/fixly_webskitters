@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fixly API Documentation</title>
+
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet" />
+
+  <style>
+    body {
+      background: #f8fafc;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      color: #222;
+    }
+
+    header {
+      background: linear-gradient(90deg, #1e3c72, #2a5298);
+      color: #fff;
+      padding: 3rem 1rem;
+      border-radius: 0 0 30px 30px;
+      box-shadow: 0 8px 15px rgb(0 0 0 / 0.15);
+      text-align: center;
+    }
+
+    header h1 {
+      font-weight: 700;
+      font-size: 2.75rem;
+      letter-spacing: 1.2px;
+      text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.3);
+      margin-bottom: 0.5rem;
+    }
+
+    header p {
+      font-size: 1.1rem;
+      margin-bottom: 0.25rem;
+    }
+
+    header a {
+      color: #d0e8ff;
+      text-decoration: none;
+      font-weight: 600;
+      transition: color 0.3s ease;
+    }
+
+    header a:hover {
+      color: #a9d1ff;
+    }
+
+    code {
+      background-color: #e1ecf4;
+      padding: 3px 8px;
+      border-radius: 5px;
+      font-weight: 600;
+      font-size: 1.1rem;
+      user-select: all;
+    }
+
+    main.container {
+      max-width: 960px;
+      margin-top: -50px;
+      margin-bottom: 3rem;
+      padding: 0 1rem;
+      flex-grow: 1;
+    }
+
+    .card {
+      border-radius: 15px;
+      box-shadow: 0 6px 12px rgb(0 0 0 / 0.1);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      margin-bottom: 2rem;
+      background-color: #fff;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 12px 24px rgb(0 0 0 / 0.15);
+    }
+
+    .card-title {
+      font-weight: 700;
+      font-size: 1.45rem;
+      color: #1e3c72;
+      margin-bottom: 1rem;
+    }
+
+    .section-title {
+      font-weight: 700;
+      font-size: 1.8rem;
+      margin-top: 3.5rem;
+      margin-bottom: 1.5rem;
+      color: #2a5298;
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+      text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .list-group-item {
+      font-size: 1.1rem;
+      cursor: default;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-left: 2.5rem;
+      position: relative;
+      border: none;
+      border-bottom: 1px solid #ddd;
+      background-color: #fff;
+      transition: background-color 0.25s ease;
+      user-select: none;
+    }
+
+    .list-group-item:last-child {
+      border-bottom: none;
+    }
+
+    .list-group-item:hover {
+      background-color: #f1f6ff;
+    }
+
+    .list-group-item::before {
+      content: "→";
+      position: absolute;
+      left: 1rem;
+      color: #1e3c72;
+      font-weight: 700;
+      font-size: 1.3rem;
+      transition: transform 0.3s ease;
+      user-select: none;
+    }
+
+    .list-group-item:hover::before {
+      transform: translateX(5px);
+      color: #2a5298;
+    }
+
+    .badge-endpoint {
+      font-weight: 600;
+      font-size: 0.85rem;
+      margin-left: auto;
+      padding: 0.3em 0.7em;
+      border-radius: 12px;
+      color: #fff;
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    .bg-primary {
+      background-color: #0d6efd !important;
+    }
+
+    .bg-success {
+      background-color: #198754 !important;
+    }
+
+    .bg-warning {
+      background-color: #ffc107 !important;
+      color: #212529 !important;
+    }
+
+    .postman-link a {
+      font-weight: 600;
+      color: #ff6f61;
+      text-decoration: none;
+      word-break: break-word;
+      font-size: 1rem;
+    }
+
+    .postman-link a:hover {
+      text-decoration: underline;
+    }
+
+    footer {
+      margin-top: auto;
+      padding: 1rem 0;
+      background-color: #1e3c72;
+      color: #d0e8ff;
+      text-align: center;
+      font-size: 0.9rem;
+      letter-spacing: 0.05em;
+      box-shadow: inset 0 2px 5px rgb(0 0 0 / 0.1);
+      user-select: none;
+    }
+
+    .endpoint-method {
+      font-weight: 600;
+      font-size: 0.9rem;
+      padding: 0.2em 0.6em;
+      border-radius: 6px;
+      margin-right: 0.75rem;
+      user-select: none;
+      display: inline-block;
+      min-width: 60px;
+      text-align: center;
+    }
+
+    @media (max-width: 575px) {
+      .list-group-item {
+        font-size: 1rem;
+        padding-left: 2rem;
+      }
+
+      .section-title {
+        font-size: 1.4rem;
+      }
+
+      header h1 {
+        font-size: 2.4rem;
+      }
+
+      .badge-endpoint {
+        font-size: 0.75rem;
+        padding: 0.2em 0.5em;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>Fixly API Documentation</h1>
+    <p>
+      Base URL: <code>https://fixly-webskitters.onrender.com/</code>
+    </p>
+    <p>
+      <strong>Author:</strong> Md Ali Raza &nbsp; | &nbsp;
+      <a href="https://github.com/Mdaliraza1" target="_blank" rel="noopener noreferrer">
+        <i class="bi bi-github"></i> GitHub
+      </a>
+      &nbsp;|&nbsp;
+      <a href="https://www.linkedin.com/in/mdaliraza1/" target="_blank" rel="noopener noreferrer">
+        <i class="bi bi-linkedin"></i> LinkedIn
+      </a>
+    </p>
+  </header>
+
+  <main class="container">
+
+    <div class="card p-4 shadow-sm">
+      <h5 class="card-title"><i class="bi bi-folder2-open-fill me-2" style="color:#ff6f61"></i>Postman Collection</h5>
+      <p class="postman-link mb-0">
+        <a href="https://documenter.getpostman.com/view/44342859/2sB2j7eVGw" target="_blank" rel="noopener noreferrer">
+          https://documenter.getpostman.com/view/44342859/2sB2j7eVGw
+        </a>
+      </p>
+    </div>
+
+    <section>
+      <h3 class="section-title"><i class="bi bi-person-plus-fill" style="color:#2a5298"></i> Registration</h3>
+      <ul class="list-group shadow-sm rounded">
+        <li class="list-group-item">
+          <span>POST Register Customer</span>
+          <span class="badge-endpoint bg-primary">POST</span>
+        </li>
+        <li class="list-group-item">
+          <span>POST Register Service Provider</span>
+          <span class="badge-endpoint bg-primary">POST</span>
+        </li>
+      </ul>
+    </section>
+
+    <section>
+      <h3 class="section-title"><i class="bi bi-box-arrow-in-right" style="color:#2a5298"></i> Authentication</h3>
+      <ul class="list-group shadow-sm rounded">
+        <li class="list-group-item">
+          <span>POST Login</span>
+          <span class="badge-endpoint bg-primary">POST</span>
+        </li>
+        <li class="list-group-item">
+          <span>POST logout</span>
+          <span class="badge-endpoint bg-success">GET</span>
+        </li>
+        <li class="list-group-item">
+          <span>POST refresh</span>
+          <span class="badge-endpoint bg-primary">POST</span>
+        </li>
+      </ul>
+    </section>
+
+    <section>
+      <h3 class="section-title"><i class="bi bi-person-badge-fill" style="color:#2a5298"></i> User & Profile</h3>
+      <ul class="list-group shadow-sm rounded">
+        <li class="list-group-item">
+          <span>GET Get User Detail</span>
+          <span class="badge-endpoint bg-success">GET</span>
+        </li>
+        <li class="list-group-item">
+          <span>PATCH Update Customer Profile</span>
+          <span class="badge-endpoint bg-warning">PATCH</span>
+        </li>
+        <li class="list-group-item">
+          <span>PATCH Update Provider Profile</span>
+          <span class="badge-endpoint bg-warning">PATCH</span>
+        </li>
+      </ul>
+    </section>
+
+    <section>
+      <h3 class="section-title"><i class="bi bi-people-fill" style="color:#2a5298"></i> Providers</h3>
+      <ul class="list-group shadow-sm rounded">
+        <li class="list-group-item">
+          <span>GET List Service Providers</span>
+          <span class="badge-endpoint bg-success">GET</span>
+        </li>
+        <li class="list-group-item">
+          <span>GET Get provider with category and location</span>
+          <span class="badge-endpoint bg-success">GET</span>
+        </li>
+      </ul>
+    </section>
+
+    <section>
+      <h3 class="section-title"><i class="bi bi-briefcase-fill" style="color:#2a5298"></i> Services API</h3>
+      <ul class="list-group shadow-sm rounded">
+        <li class="list-group-item">
+          <span>GET Get All Services</span>
+          <span class="badge-endpoint bg-success">GET</span>
+        </li>
+        <li class="list-group-item">
+          <span>GET Get Single Service</span>
+          <span class="badge-endpoint bg-success">GET</span>
+        </li>
+      </ul>
+    </section>
+
+    <section>
+      <h3 class="section-title"><i class="bi bi-calendar-check-fill" style="color:#2a5298"></i> Booking</h3>
+      <ul class="list-group shadow-sm rounded">
+        <li class="list-group-item">
+          <span>POST Create Booking</span>
+          <span class="badge-endpoint bg-primary">POST</span>
+        </li>
+        <li class="list-group-item">
+          <span>GET My Bookings</span>
+          <span class="badge-endpoint bg-success">GET</span>
+        </li>
+        <li class="list-group-item">
+          <span>GET Provider Bookings</span>
+          <span class="badge-endpoint bg-success">GET</span>
+        </li>
+        <li class="list-group-item">
+          <span>POST Available Slots</span>
+          <span class="badge-endpoint bg-primary">POST</span>
+        </li>
+        <li class="list-group-item">
+          <span>PUT Update booking status</span>
+          <span class="badge-endpoint bg-warning">PUT</span>
+        </li>
+      </ul>
+    </section>
+
+    <section>
+      <h3 class="section-title"><i class="bi bi-chat-left-text-fill" style="color:#2a5298"></i> Review</h3>
+      <ul class="list-group shadow-sm rounded">
+        <li class="list-group-item">
+          <span>POST Submit Review</span>
+          <span class="badge-endpoint bg-primary">POST</span>
+        </li>
+        <li class="list-group-item">
+          <span>GET Get All Reviews</span>
+          <span class="badge-endpoint bg-success">GET</span>
+        </li>
+        <li class="list-group-item">
+          <span>GET Get Reviews by Provider ID</span>
+          <span class="badge-endpoint bg-success">GET</span>
+        </li>
+        <li class="list-group-item">
+          <span>GET Review by category</span>
+          <span class="badge-endpoint bg-success">GET</span>
+        </li>
+      </ul>
+    </section>
+
+  </main>
+
+  <footer>
+    &copy; 2025 Fixly API by Md Ali Raza. All rights reserved.
+  </footer>
+
+  <!-- Bootstrap JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+
+</html>
