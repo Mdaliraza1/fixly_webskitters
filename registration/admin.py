@@ -30,22 +30,22 @@ class CustomUserAdmin(UserAdmin):
     search_fields = ('email', 'username', 'first_name', 'last_name', 'contact', 'location')
     ordering = ('email',)
     filter_horizontal = ()  # Remove groups and user_permissions
-    
+
     fieldsets = (
         (None, {'fields': ('email', 'password')}),
         ('Personal info', {'fields': ('username', 'first_name', 'last_name', 'contact', 'location')}),
-        ('Service Provider Info', {'fields': ('user_type', 'category', 'description', 'experience', 'profile_picture')}),
+        ('Service Provider Info', {'fields': ('user_type', 'category')}),
         ('Important dates', {'fields': ('last_login', 'date_joined')}),
         ('Status', {'fields': ('is_active', 'is_staff', 'is_superuser')}),
     )
-    
+
     add_fieldsets = (
         (None, {
             'classes': ('wide',),
             'fields': ('email', 'password1', 'password2', 'username', 'first_name', 'last_name', 'user_type', 'category'),
         }),
     )
-    
+
     def get_queryset(self, request):
         queryset = super().get_queryset(request)
         queryset = queryset.annotate(
@@ -53,19 +53,19 @@ class CustomUserAdmin(UserAdmin):
             booking_count=Count('booking')
         )
         return queryset
-    
+
     def get_rating(self, obj):
         if hasattr(obj, 'rating_avg'):
             return round(obj.rating_avg, 1) if obj.rating_avg else 0
         return 0
     get_rating.short_description = 'Rating'
-    
+
     def get_bookings(self, obj):
         if hasattr(obj, 'booking_count'):
             return obj.booking_count
         return 0
     get_bookings.short_description = 'Bookings'
-    
+
     actions = [
         export_as_csv_action(
             description="Export selected users to CSV",
@@ -87,19 +87,16 @@ class DashboardView(TemplateView):
         context = super().get_context_data(**kwargs)
         context['title'] = 'Dashboard'
         
-        # Get filter parameters
         category = self.request.GET.get('category')
         start_date = self.request.GET.get('start_date')
         end_date = self.request.GET.get('end_date')
         search = self.request.GET.get('search', '').strip()
 
-        # Base querysets
         bookings = Booking.objects.all()
         reviews = Review.objects.all()
         users = User.objects.all()
         services = Service.objects.all()
 
-        # Apply filters
         if category and category != 'all':
             bookings = bookings.filter(service_provider__category__category=category)
             reviews = reviews.filter(service_provider__category__category=category)
@@ -111,12 +108,11 @@ class DashboardView(TemplateView):
 
         if search:
             provider_filter = Q(service_provider__first_name__icontains=search) | \
-                            Q(service_provider__last_name__icontains=search) | \
-                            Q(service_provider__email__icontains=search)
+                              Q(service_provider__last_name__icontains=search) | \
+                              Q(service_provider__email__icontains=search)
             bookings = bookings.filter(provider_filter)
             reviews = reviews.filter(provider_filter)
 
-        # Calculate statistics
         context.update({
             'categories': services.values_list('category', flat=True).distinct(),
             'statistics': {

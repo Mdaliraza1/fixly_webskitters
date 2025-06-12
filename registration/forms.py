@@ -9,13 +9,20 @@ from django.utils.translation import gettext_lazy as _
 class CustomUserCreationForm(UserCreationForm):
     class Meta(UserCreationForm.Meta):
         model = User
-        fields = ('email', 'username', 'first_name', 'last_name', 'user_type', 'contact', 'location', 'category')
+        fields = (
+            'email', 'username', 'first_name', 'last_name',
+            'user_type', 'contact', 'location', 'category'
+        )
         exclude = ('groups', 'user_permissions')
 
 class CustomUserChangeForm(UserChangeForm):
     class Meta(UserChangeForm.Meta):
         model = User
-        fields = ('email', 'username', 'first_name', 'last_name', 'user_type', 'contact', 'location', 'category', 'description', 'experience', 'profile_picture', 'is_active', 'is_staff', 'is_superuser')
+        fields = (
+            'email', 'username', 'first_name', 'last_name',
+            'user_type', 'contact', 'location', 'category',
+            'is_active', 'is_staff', 'is_superuser'
+        )
         exclude = ('groups', 'user_permissions')
 
 class CustomAdminAuthenticationForm(AdminAuthenticationForm):
@@ -44,10 +51,6 @@ class CustomAdminAuthenticationForm(AdminAuthenticationForm):
         return self.cleaned_data
 
     def confirm_login_allowed(self, user):
-        """
-        Controls whether the given User may log in. This is a policy setting,
-        independent of end-user authentication.
-        """
         if not user.is_active:
             raise ValidationError(
                 self.error_messages['inactive'],
@@ -61,4 +64,4 @@ class CustomAdminAuthenticationForm(AdminAuthenticationForm):
             )
 
     def get_user(self):
-        return self.user_cache if hasattr(self, 'user_cache') else None 
+        return getattr(self, 'user_cache', None)
