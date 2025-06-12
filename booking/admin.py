@@ -26,7 +26,7 @@ class BookingAdmin(admin.ModelAdmin):
 
     fieldsets = (
         ('Booking Details', {
-            'fields': ('user', 'service', 'service_provider', 'date', 'time_slot')
+            'fields': ('user', 'service_provider', 'date', 'time_slot')
         }),
         ('Status Information', {
             'fields': ('status',),
