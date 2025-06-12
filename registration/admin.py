@@ -7,12 +7,15 @@ from django.utils.html import format_html
 from django.contrib.admin.views.decorators import staff_member_required
 from django.utils.decorators import method_decorator
 from django.views.generic import TemplateView
-from .models import User
+
+from .models import User, UserToken
 from .forms import CustomUserChangeForm, CustomUserCreationForm
 from utils.admin_actions import export_as_csv_action
+
 from service.models import Service
 from booking.models import Booking
 from review.models import Review
+
 
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
@@ -44,7 +47,7 @@ class CustomUserAdmin(UserAdmin):
         queryset = super().get_queryset(request)
         queryset = queryset.annotate(
             rating_avg=Avg('reviews_received__rating'),
-            booking_count=Count('booking')
+            booking_count=Count('bookings')  # ✅ Fixed: use correct related name
         )
         return queryset
 
@@ -63,6 +66,10 @@ class CustomUserAdmin(UserAdmin):
         )
     ]
 
+
+@admin.register(UserToken)
+class UserTokenAdmin(admin.ModelAdmin):
+    list_display = ['user', 'token', 'created_at']
 
 
 @method_decorator(staff_member_required, name='dispatch')
@@ -84,10 +91,12 @@ class DashboardView(TemplateView):
         if category and category != 'all':
             bookings = bookings.filter(service_provider__category__category=category)
             reviews = reviews.filter(service_provider__category__category=category)
+
         if start_date:
             bookings = bookings.filter(date__gte=start_date)
         if end_date:
             bookings = bookings.filter(date__lte=end_date)
+
         if search:
             provider_filter = Q(service_provider__first_name__icontains=search) | Q(service_provider__last_name__icontains=search) | Q(service_provider__email__icontains=search)
             bookings = bookings.filter(provider_filter)
@@ -127,8 +136,3 @@ class DashboardView(TemplateView):
         })
 
         return context
-from .models import UserToken
-
-@admin.register(UserToken)
-class UserTokenAdmin(admin.ModelAdmin):
-    list_display = ['user', 'token', 'created_at']
