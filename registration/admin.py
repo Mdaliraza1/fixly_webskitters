@@ -63,11 +63,7 @@ class CustomUserAdmin(UserAdmin):
         )
     ]
 
-@admin.register(UserToken)
-class UserTokenAdmin(admin.ModelAdmin):
-    list_display = ('user', 'token', 'created_at')
-    search_fields = ('user__email', 'user__username', 'token')
-    ordering = ('-created_at',)
+
 
 @method_decorator(staff_member_required, name='dispatch')
 class DashboardView(TemplateView):
