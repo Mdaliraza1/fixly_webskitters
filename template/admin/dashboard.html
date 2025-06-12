@@ -2,87 +2,109 @@
 {% load static %}
 
 {% block content %}
-<h1>Fixly Admin Dashboard</h1>
+<div class="dashboard-container">
+    <h2>📊 Fixly Analytics Dashboard</h2>
 
-<div style="margin-bottom: 1em;">
-    <label for="category-select">Filter by Category:</label>
-    <select id="category-select">
+    <label for="categoryFilter">Filter by Category:</label>
+    <select id="categoryFilter">
         <option value="all">All</option>
-        {% for cat in categories %}
-        <option value="{{ cat }}">{{ cat }}</option>
+        {% for category in categories %}
+            <option value="{{ category }}">{{ category }}</option>
         {% endfor %}
     </select>
+    <button onclick="loadData()">Apply</button>
 
-    <label for="start-date">Start Date:</label>
-    <input type="date" id="start-date" />
+    <hr>
 
-    <label for="end-date">End Date:</label>
-    <input type="date" id="end-date" />
+    <h3>🧑 Users Overview</h3>
+    <canvas id="userTypeChart" height="100"></canvas>
 
-    <button id="filter-btn">Apply Filters</button>
-</div>
+    <h3>🛠️ Bookings by Category</h3>
+    <canvas id="bookingCategoryChart" height="100"></canvas>
 
-<div>
-    <canvas id="bookingsChart" width="800" height="400"></canvas>
-</div>
+    <h3>👨‍🔧 Bookings per Provider</h3>
+    <canvas id="bookingProviderChart" height="100"></canvas>
 
-<div>
-    <h3>Average Rating: <span id="avg-rating">-</span> ★</h3>
+    <h3>⭐ Ratings per Provider</h3>
+    <canvas id="ratingProviderChart" height="100"></canvas>
+
+    <h3>📝 Reviews by Category</h3>
+    <canvas id="reviewCategoryChart" height="100"></canvas>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    function fetchData() {
-        let category = document.getElementById('category-select').value;
-        let startDate = document.getElementById('start-date').value;
-        let endDate = document.getElementById('end-date').value;
+let charts = {};
 
-        let url = new URL(window.location.origin + "{% url 'admin:dashboard-data' %}");
-        if (category && category !== 'all') url.searchParams.append('category', category);
-        if (startDate) url.searchParams.append('start_date', startDate);
-        if (endDate) url.searchParams.append('end_date', endDate);
+function renderChart(ctxId, labels, data, label, color='blue') {
+    const ctx = document.getElementById(ctxId).getContext('2d');
+    if (charts[ctxId]) charts[ctxId].destroy();
 
-        fetch(url)
-            .then(response => response.json())
-            .then(data => {
-                updateChart(data.bookings);
-                document.getElementById('avg-rating').innerText = data.average_rating;
-            });
-    }
-
-    const ctx = document.getElementById('bookingsChart').getContext('2d');
-    let bookingsChart = new Chart(ctx, {
-        type: 'line',
+    charts[ctxId] = new Chart(ctx, {
+        type: 'bar',
         data: {
-            labels: [],
+            labels,
             datasets: [{
-                label: 'Bookings per Day',
-                data: [],
-                fill: false,
-                borderColor: 'blue',
-                tension: 0.1
+                label,
+                data,
+                backgroundColor: color
             }]
         },
         options: {
-            scales: {
-                x: { title: { display: true, text: 'Date' } },
-                y: { title: { display: true, text: 'Bookings' }, beginAtZero: true }
-            }
+            responsive: true,
+            plugins: { legend: { display: false }},
+            scales: { y: { beginAtZero: true } }
         }
     });
+}
 
-    function updateChart(bookings) {
-        let labels = bookings.map(b => b.date);
-        let data = bookings.map(b => b.count);
-        bookingsChart.data.labels = labels;
-        bookingsChart.data.datasets[0].data = data;
-        bookingsChart.update();
-    }
+function loadData() {
+    const category = document.getElementById('categoryFilter').value;
+    fetch(`/admin/dashboard-data/?category=${category}`)
+        .then(res => res.json())
+        .then(data => {
+            renderChart(
+                "bookingCategoryChart",
+                data.bookings_by_category.map(b => b.service_provider__category__category),
+                data.bookings_by_category.map(b => b.count),
+                "Bookings by Category",
+                "purple"
+            );
 
-    document.getElementById('filter-btn').addEventListener('click', fetchData);
+            renderChart(
+                "bookingProviderChart",
+                data.bookings_by_provider.map(p => `${p.service_provider__first_name} ${p.service_provider__last_name}`),
+                data.bookings_by_provider.map(p => p.count),
+                "Bookings per Provider",
+                "orange"
+            );
 
-    // Initial load
-    fetchData();
+            renderChart(
+                "ratingProviderChart",
+                data.ratings_by_provider.map(p => `${p.service_provider__first_name} ${p.service_provider__last_name}`),
+                data.ratings_by_provider.map(p => p.avg_rating),
+                "Avg Ratings per Provider",
+                "green"
+            );
+
+            renderChart(
+                "userTypeChart",
+                data.user_type_counts.map(u => u.user_type),
+                data.user_type_counts.map(u => u.count),
+                "Users by Type",
+                "blue"
+            );
+
+            renderChart(
+                "reviewCategoryChart",
+                data.reviews_by_category.map(r => r.service_provider__category__category),
+                data.reviews_by_category.map(r => r.count),
+                "Reviews by Category",
+                "teal"
+            );
+        });
+}
+
+document.addEventListener('DOMContentLoaded', loadData);
 </script>
-
 {% endblock %}
