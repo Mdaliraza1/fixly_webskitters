@@ -5,7 +5,7 @@ from django.contrib.auth import authenticate, login
 from django.contrib.auth.models import Group
 from django.conf import settings
 from django.conf.urls.static import static
-from django.shortcuts import redirect
+from django.shortcuts import redirect, render
 from django.contrib import messages
 from registration.forms import CustomAdminAuthenticationForm
 
@@ -14,6 +14,7 @@ class CustomAdminSite(AdminSite):
     site_title = 'Fixly Admin Portal'
     index_title = 'Welcome to Fixly Admin Portal'
     login_form = CustomAdminAuthenticationForm
+    login_template = 'admin/login.html'
 
     def has_permission(self, request):
         """
@@ -38,11 +39,13 @@ class CustomAdminSite(AdminSite):
             **self.each_context(request),
             'title': 'Log in',
             'app_path': request.get_full_path(),
+            'username': request.user.get_username() if request.user.is_authenticated else '',
             'form': form,
+            'next': request.GET.get('next', ''),
             **(extra_context or {}),
         }
 
-        return self.render_login_template(request, context)
+        return render(request, self.login_template, context)
 
     def get_app_list(self, request, app_label=None):
         """
