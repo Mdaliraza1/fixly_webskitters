@@ -1,3 +1,5 @@
+from django.contrib import admin
+
 class DashboardAdmin(admin.ModelAdmin):
     change_list_template = "admin/dashboard.html"  # This connects to your custom template
 
