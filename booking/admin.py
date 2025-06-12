@@ -24,7 +24,6 @@ class BookingAdmin(admin.ModelAdmin):
     ordering = ('-date', '-time_slot')
     actions = [export_as_csv_action()]
 
-    # Editable fields in admin form
     fieldsets = (
         ('Booking Details', {
             'fields': ('user', 'service', 'service_provider', 'date', 'time_slot')
@@ -35,16 +34,11 @@ class BookingAdmin(admin.ModelAdmin):
         }),
     )
 
-    # Allow editing fields even for existing bookings
-    fields = ('user', 'service', 'service_provider', 'date', 'time_slot', 'status')
-
-    # Optional: Only show SERVICE_PROVIDER in provider dropdown
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == "service_provider":
             kwargs["queryset"] = User.objects.filter(user_type="SERVICE_PROVIDER")
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
-    # Display helpers
     def get_user_name(self, obj):
         return f"{obj.user.first_name} {obj.user.last_name}"
     get_user_name.short_description = 'User Name'
