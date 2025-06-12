@@ -146,67 +146,74 @@ SIMPLE_JWT = {
 
 # ✅ Corrected JAZZMIN settings
 JAZZMIN_SETTINGS = {
-    "site_title": "Fixly Admin Portal",
-    "site_header": "Fixly Admin Dashboard",
+    "site_title": "Fixly Admin",
+    "site_header": "Fixly",
     "site_brand": "Fixly",
+    "site_logo": None,
     "welcome_sign": "Welcome to Fixly Admin Panel",
     "copyright": "Fixly",
-    "search_model": ["registration.User", "booking.Booking", "review.Review"],
+    "search_model": ["registration.User", "service.Service", "booking.Booking", "review.Review"],
+    
+    "topmenu_links": [
+        {"name": "Home", "url": "admin:index", "permissions": ["auth.view_user"]},
+        {"name": "Site", "url": "/", "new_window": True},
+    ],
 
     "show_sidebar": True,
     "navigation_expanded": True,
-    "hide_apps": [],
-    "hide_models": [],
-
-    "order_with_respect_to": [
-        "registration",
-        "booking",
-        "review",
-        "service",
-    ],
-
+    
     "icons": {
-        "registration.User": "fas fa-user",
-        "registration.UserToken": "fas fa-key",
-        "booking.Booking": "fas fa-calendar-check",
-        "review.Review": "fas fa-star",
-        "service.Service": "fas fa-tools",
+        "auth": "fas fa-users-cog",
+        "registration.user": "fas fa-user",
+        "service.service": "fas fa-tools",
+        "booking.booking": "fas fa-calendar",
+        "review.review": "fas fa-star",
     },
-
-    "custom_links": {
-        "service": [
-            {
-                "name": "Dashboard Analytics",
-                "url": "admin:dashboard-data",
-                "icon": "fas fa-chart-line",
-                "permissions": ["service.view_service"],
-            }
-        ],
+    
+    "default_icon_parents": "fas fa-chevron-circle-right",
+    "default_icon_children": "fas fa-circle",
+    
+    "related_modal_active": True,
+    
+    "custom_css": None,
+    "custom_js": None,
+    "show_ui_builder": True,
+    
+    "changeform_format": "horizontal_tabs",
+    "changeform_format_overrides": {
+        "auth.user": "collapsible",
+        "auth.group": "vertical_tabs",
     },
-
-    "topmenu_links": [
-        {"name": "Home", "url": "/", "permissions": ["auth.view_user"]},
-        {"model": "registration.user"},
-        {"app": "booking"},
-    ],
-
-    "usermenu_links": [
-        {"name": "Support", "url": "https://fixlysupport.example.com", "new_window": True},
-    ],
-
-    "changeform_format": "horizontal_tabs",  # or "collapsible", "vertical_tabs"
 }
 
 JAZZMIN_UI_TWEAKS = {
-    "theme": "cosmo",
-    "dark_mode_theme": "darkly",
     "navbar_small_text": False,
     "footer_small_text": False,
     "body_small_text": False,
     "brand_small_text": False,
+    "brand_colour": "navbar-primary",
+    "accent": "accent-primary",
+    "navbar": "navbar-dark",
+    "no_navbar_border": False,
+    "navbar_fixed": False,
+    "layout_boxed": False,
+    "footer_fixed": False,
+    "sidebar_fixed": False,
+    "sidebar": "sidebar-dark-primary",
     "sidebar_nav_small_text": False,
     "sidebar_disable_expand": False,
-    "sidebar_nav_flat_style": True,
+    "sidebar_nav_child_indent": False,
+    "sidebar_nav_compact_style": False,
     "sidebar_nav_legacy_style": False,
-    "sidebar_nav_child_indent": True,
+    "sidebar_nav_flat_style": False,
+    "theme": "default",
+    "dark_mode_theme": None,
+    "button_classes": {
+        "primary": "btn-primary",
+        "secondary": "btn-secondary",
+        "info": "btn-info",
+        "warning": "btn-warning",
+        "danger": "btn-danger",
+        "success": "btn-success"
+    }
 }

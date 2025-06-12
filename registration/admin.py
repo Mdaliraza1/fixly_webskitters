@@ -1,4 +1,76 @@
 from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin
+from django.db.models import Count, Avg
+from django.urls import path
+from django.http import JsonResponse
+from django.db.models import Q
+from django.utils.html import format_html
+from .models import User, UserToken
+from utils.admin_actions import export_as_csv_action
+from service.models import Service
+from booking.models import Booking
+from review.models import Review
+
+@admin.register(User)
+class CustomUserAdmin(UserAdmin):
+    list_display = ('email', 'first_name', 'last_name', 'user_type', 'contact', 'location', 'get_rating', 'get_bookings')
+    list_filter = ('user_type', 'is_active', 'is_staff', 'gender', 'category')
+    search_fields = ('email', 'first_name', 'last_name', 'contact', 'location')
+    ordering = ('email',)
+    actions = [export_as_csv_action()]
+
+    fieldsets = (
+        (None, {'fields': ('email', 'password')}),
+        ('Personal info', {'fields': ('first_name', 'last_name', 'contact', 'gender', 'location')}),
+        ('Service Provider Info', {'fields': ('category',), 'classes': ('collapse',)}),
+        ('Permissions', {'fields': ('is_active', 'is_staff', 'is_superuser', 'user_type', 'groups', 'user_permissions')}),
+        ('Important dates', {'fields': ('last_login', 'date_joined')}),
+    )
+    
+    add_fieldsets = (
+        (None, {
+            'classes': ('wide',),
+            'fields': ('email', 'password1', 'password2', 'first_name', 'last_name', 'user_type'),
+        }),
+    )
+
+    def get_rating(self, obj):
+        if obj.user_type == 'SERVICE_PROVIDER':
+            avg_rating = Review.objects.filter(service_provider=obj).aggregate(Avg('rating'))['rating__avg']
+            if avg_rating:
+                stars = '★' * int(avg_rating) + '☆' * (5 - int(avg_rating))
+                return format_html('<span style="color: #FFD700;">{}</span> ({:.1f})', stars, avg_rating)
+        return '-'
+    get_rating.short_description = 'Rating'
+
+    def get_bookings(self, obj):
+        if obj.user_type == 'SERVICE_PROVIDER':
+            count = Booking.objects.filter(service_provider=obj).count()
+            return count
+        elif obj.user_type == 'USER':
+            count = Booking.objects.filter(user=obj).count()
+            return count
+        return 0
+    get_bookings.short_description = 'Bookings'
+
+@admin.register(UserToken)
+class UserTokenAdmin(admin.ModelAdmin):
+    list_display = ('user', 'created_at', 'expired_at')
+    list_filter = ('created_at', 'expired_at')
+    search_fields = ('user__email', 'token')
+    ordering = ('-created_at',)
+    actions = [export_as_csv_action()]
+    
+    fieldsets = (
+        ('Token Information', {
+            'fields': ('user', 'token', 'expired_at')
+        }),
+    )
+    
+    def get_readonly_fields(self, request, obj=None):
+        if obj:  # editing an existing object
+            return ('user', 'token', 'created_at')
+        return ('created_at',)
 
 class DashboardAdmin(admin.ModelAdmin):
     change_list_template = "admin/dashboard.html"  # This connects to your custom template
