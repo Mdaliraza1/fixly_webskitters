@@ -8,9 +8,6 @@ from django.conf.urls.static import static
 from django.shortcuts import redirect
 from django.contrib import messages
 
-from registration.models import Dashboard
-from registration.admin import DashboardAdmin
-
 
 class CustomAdminSite(AdminSite):
     site_header = 'Fixly Admin'
@@ -29,6 +26,7 @@ class CustomAdminSite(AdminSite):
                 email='admin@example.com',
                 defaults={
                     'username': 'admin',
+                    'user_type': 'admin',
                     'is_staff': True,
                     'is_superuser': True,
                     'is_active': True,
@@ -48,6 +46,8 @@ class CustomAdminSite(AdminSite):
         return redirect('admin:index')
 
     def index(self, request, extra_context=None):
+        from registration.models import Dashboard
+        from registration.admin import DashboardAdmin  # ✅ Import here only
         dashboard_admin = DashboardAdmin(Dashboard, self)
         return dashboard_admin.changelist_view(request)
 
@@ -70,11 +70,24 @@ class CustomAdminSite(AdminSite):
         return app_list
 
 
-# ✅ FIX: Instantiate custom admin site before using it
+# ✅ Instantiate after class definition
 admin_site = CustomAdminSite(name='custom_admin')
 
 
-# Register your models with the custom admin site
+# ✅ Define URL patterns early
+urlpatterns = [
+    path('admin/', admin_site.urls),
+    path('', include('registration.urls')),
+    path('services/', include('service.urls')),
+    path('review/', include('review.urls')),
+    path('booking/', include('booking.urls')),
+]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+
+# ✅ Register models at the end to avoid circular import
 from registration.models import User, UserToken, Dashboard
 from service.models import Service
 from booking.models import Booking
@@ -91,16 +104,5 @@ admin_site.register(Booking, BookingAdmin)
 admin_site.register(Review, ReviewAdmin)
 admin_site.register(Dashboard, DashboardAdmin)
 
-# Unregister auth models
+# Unregister default auth group model
 admin.site.unregister(Group)
-
-urlpatterns = [
-    path('admin/', admin_site.urls),
-    path('', include('registration.urls')),
-    path('services/', include('service.urls')),
-    path('review/', include('review.urls')),
-    path('booking/', include('booking.urls'))
-]
-
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
