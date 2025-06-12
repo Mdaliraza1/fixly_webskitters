@@ -2,6 +2,8 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
+from datetime import timedelta
+from django.utils import timezone
 
 class User(AbstractUser):
     USER_TYPE_CHOICES = (
@@ -76,6 +78,8 @@ class UserToken(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     token = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
+    expired_at = models.DateTimeField(default=timezone.now() + timedelta(days=7))
+
 
     def __str__(self):
         return f"{self.user.email} - {self.token[:10]}..."
