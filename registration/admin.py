@@ -7,23 +7,23 @@ from django.utils.html import format_html
 from django.contrib.admin.views.decorators import staff_member_required
 from django.utils.decorators import method_decorator
 from django.views.generic import TemplateView
-
 from .models import User, UserToken
 from .forms import CustomUserChangeForm, CustomUserCreationForm
 from utils.admin_actions import export_as_csv_action
-
 from service.models import Service
 from booking.models import Booking
 from review.models import Review
-
 
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
     form = CustomUserChangeForm
     add_form = CustomUserCreationForm
 
-    list_display = ('email', 'first_name', 'last_name', 'user_type', 'contact', 'location', 'get_rating', 'get_bookings')
-    list_filter = ('user_type', 'is_active', 'is_staff')
+    list_display = (
+        'email', 'first_name', 'last_name', 'user_type', 'contact',
+        'location', 'get_rating', 'get_provider_bookings', 'get_user_bookings'
+    )
+    list_filter = ('user_type')
     search_fields = ('email', 'username', 'first_name', 'last_name', 'contact', 'location')
     ordering = ('email',)
     filter_horizontal = ()
@@ -47,17 +47,22 @@ class CustomUserAdmin(UserAdmin):
         queryset = super().get_queryset(request)
         queryset = queryset.annotate(
             rating_avg=Avg('reviews_received__rating'),
-            booking_count=Count('bookings')  # ✅ Fixed: use correct related name
+            provider_booking_count=Count('provider_bookings', distinct=True),
+            user_booking_count=Count('bookings', distinct=True)
         )
         return queryset
 
     def get_rating(self, obj):
-        return round(obj.rating_avg, 1) if hasattr(obj, 'rating_avg') and obj.rating_avg else 0
+        return round(obj.rating_avg, 1) if obj.rating_avg else 0
     get_rating.short_description = 'Rating'
 
-    def get_bookings(self, obj):
-        return obj.booking_count if hasattr(obj, 'booking_count') else 0
-    get_bookings.short_description = 'Bookings'
+    def get_provider_bookings(self, obj):
+        return obj.provider_booking_count
+    get_provider_bookings.short_description = 'Provider Bookings'
+
+    def get_user_bookings(self, obj):
+        return obj.user_booking_count
+    get_user_bookings.short_description = 'User Bookings'
 
     actions = [
         export_as_csv_action(
@@ -65,12 +70,6 @@ class CustomUserAdmin(UserAdmin):
             fields=['email', 'username', 'first_name', 'last_name', 'user_type', 'contact', 'location']
         )
     ]
-
-
-@admin.register(UserToken)
-class UserTokenAdmin(admin.ModelAdmin):
-    list_display = ['user', 'token', 'created_at']
-
 
 @method_decorator(staff_member_required, name='dispatch')
 class DashboardView(TemplateView):
@@ -83,20 +82,18 @@ class DashboardView(TemplateView):
         end_date = self.request.GET.get('end_date')
         search = self.request.GET.get('search', '').strip()
 
-        bookings = Booking.objects.all()
-        reviews = Review.objects.all()
+        bookings = Booking.objects.select_related('service_provider', 'user')
+        reviews = Review.objects.select_related('service_provider', 'reviewer')
         users = User.objects.all()
         services = Service.objects.all()
 
         if category and category != 'all':
             bookings = bookings.filter(service_provider__category__category=category)
             reviews = reviews.filter(service_provider__category__category=category)
-
         if start_date:
             bookings = bookings.filter(date__gte=start_date)
         if end_date:
             bookings = bookings.filter(date__lte=end_date)
-
         if search:
             provider_filter = Q(service_provider__first_name__icontains=search) | Q(service_provider__last_name__icontains=search) | Q(service_provider__email__icontains=search)
             bookings = bookings.filter(provider_filter)
@@ -116,23 +113,31 @@ class DashboardView(TemplateView):
             'top_providers': [
                 {
                     'name': f"{p['service_provider__first_name']} {p['service_provider__last_name']}",
+                    'email': p['service_provider__email'],
                     'bookings': p['count']
                 }
                 for p in bookings.values(
                     'service_provider__first_name',
-                    'service_provider__last_name'
+                    'service_provider__last_name',
+                    'service_provider__email'
                 ).annotate(count=Count('id')).order_by('-count')[:10]
             ],
             'top_rated': [
                 {
                     'name': f"{p['service_provider__first_name']} {p['service_provider__last_name']}",
+                    'email': p['service_provider__email'],
                     'rating': round(p['avg_rating'], 1)
                 }
                 for p in reviews.values(
                     'service_provider__first_name',
-                    'service_provider__last_name'
+                    'service_provider__last_name',
+                    'service_provider__email'
                 ).annotate(avg_rating=Avg('rating')).order_by('-avg_rating')[:10]
             ]
         })
 
         return context
+
+@admin.register(UserToken)
+class UserTokenAdmin(admin.ModelAdmin):
+    list_display = ['user', 'token', 'created_at']
