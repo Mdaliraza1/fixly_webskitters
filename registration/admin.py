@@ -26,7 +26,7 @@ class CustomUserAdmin(UserAdmin):
     add_form = CustomUserCreationForm
     
     list_display = ('email', 'first_name', 'last_name', 'user_type', 'contact', 'location', 'get_rating', 'get_bookings')
-    list_filter = ('user_type')
+    list_filter = ('user_type', 'is_active', 'is_staff')
     search_fields = ('email', 'username', 'first_name', 'last_name', 'contact', 'location')
     ordering = ('email',)
     filter_horizontal = ()  # Remove groups and user_permissions
