@@ -4,6 +4,8 @@ from django.contrib.admin import AdminSite
 from django.contrib.auth import authenticate, login
 from django.contrib.auth.models import User, Group, Permission
 from django.contrib.contenttypes.models import ContentType
+from django.conf import settings
+from django.conf.urls.static import static
 
 class CustomAdminSite(AdminSite):
     def has_permission(self, request):
@@ -73,3 +75,7 @@ urlpatterns = [
     path('review/',include('review.urls')),
     path('booking/',include('booking.urls'))
 ]
+
+# Serve media files in development
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

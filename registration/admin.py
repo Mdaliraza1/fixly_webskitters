@@ -24,14 +24,14 @@ class CustomUserAdmin(UserAdmin):
     add_form = CustomUserCreationForm
     
     list_display = ('email', 'username', 'first_name', 'last_name', 'user_type', 'contact', 'location', 'get_rating', 'get_bookings', 'is_active')
-    list_filter = ('user_type', 'category', 'is_active')
+    list_filter = ('user_type', 'is_active')
     search_fields = ('email', 'username', 'first_name', 'last_name', 'contact', 'location')
     ordering = ('email',)
     
     fieldsets = (
         (None, {'fields': ('email', 'password')}),
-        ('Personal info', {'fields': ('username', 'first_name', 'last_name', 'contact', 'location', 'profile_picture')}),
-        ('Service Provider Info', {'fields': ('user_type', 'category', 'description', 'experience')}),
+        ('Personal info', {'fields': ('username', 'first_name', 'last_name', 'contact', 'location')}),
+        ('Service Provider Info', {'fields': ('user_type', 'category', 'description', 'experience', 'profile_picture')}),
         ('Important dates', {'fields': ('last_login', 'date_joined')}),
         ('Status', {'fields': ('is_active', 'is_staff', 'is_superuser')}),
     )
