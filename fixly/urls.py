@@ -32,6 +32,7 @@ class CustomAdminSite(AdminSite):
                     'is_staff': True,
                     'is_superuser': True,
                     'is_active': True,
+                    'user_type': 'admin',
                 }
             )
             if created:
