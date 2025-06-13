@@ -11,21 +11,27 @@ class ProviderChoiceField(forms.ModelChoiceField):
 class BookingAdminForm(forms.ModelForm):
     class Meta:
         model = Booking
-        fields = ['user', 'service_provider', 'date', 'time_slot', 'status']  # ✅ include 'user'
+        fields = ['user', 'service_provider', 'date', 'time_slot', 'status']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         instance = self.instance
 
-        if instance and instance.pk:
-            self.fields['user'].queryset = User.objects.filter(id=instance.user_id)
-            self.fields['user'].disabled = True
-
+        # Initialize service provider field
         self.fields['service_provider'] = ProviderChoiceField(
             queryset=User.objects.filter(user_type='SERVICE_PROVIDER'),
             label='Service Provider'
         )
 
+        # Handle user field
+        if instance and instance.pk and hasattr(instance, 'user_id'):
+            self.fields['user'].queryset = User.objects.filter(id=instance.user_id)
+            self.fields['user'].disabled = True
+        else:
+            # For new bookings, show all users
+            self.fields['user'].queryset = User.objects.filter(user_type='USER')
+
+        # Handle time slot availability
         if 'date' in self.data and 'time_slot' in self.data:
             try:
                 date = self.data.get('date')
@@ -34,7 +40,7 @@ class BookingAdminForm(forms.ModelForm):
                     booked_providers = Booking.objects.filter(
                         date=date,
                         time_slot=time_slot
-                    ).exclude(id=instance.id).values_list('service_provider_id', flat=True)
+                    ).exclude(id=instance.id if instance and instance.pk else None).values_list('service_provider_id', flat=True)
                     self.fields['service_provider'].queryset = self.fields['service_provider'].queryset.exclude(
                         id__in=booked_providers
                     )
