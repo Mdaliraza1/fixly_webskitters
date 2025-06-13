@@ -103,7 +103,14 @@ class BookingAdmin(admin.ModelAdmin):
     def get_provider_category(self, obj):
         # Get the category name from Service model
         service = Service.objects.filter(category=obj.service_provider.category).first()
-        return service.category if service else obj.service_provider.category
+        if service:
+            return service.category
+        # If no service found, try to get a valid category name
+        valid_categories = ['Plumber', 'Carpenter', 'Electrician', 'Cleaning']
+        category_value = obj.service_provider.category
+        if category_value in valid_categories:
+            return category_value
+        return category_value
     get_provider_category.short_description = "Provider Category"
 
     def get_provider_email(self, obj):
