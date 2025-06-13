@@ -67,6 +67,7 @@ class BookingAdmin(admin.ModelAdmin):
         'get_user_name',
         'get_user_email',
         'get_provider_name',
+        'get_provider_category',
         'get_provider_email',
         'date',
         'time_slot',
@@ -93,6 +94,10 @@ class BookingAdmin(admin.ModelAdmin):
     def get_provider_name(self, obj):
         return f"{obj.service_provider.first_name} {obj.service_provider.last_name}"
     get_provider_name.short_description = "Provider Name"
+
+    def get_provider_category(self, obj):
+        return obj.service_provider.category
+    get_provider_category.short_description = "Provider Category"
 
     def get_provider_email(self, obj):
         return obj.service_provider.email
