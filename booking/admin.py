@@ -1,6 +1,8 @@
 from django import forms
 from django.contrib import admin
-from .models import Booking, User
+from .models import Booking
+from registration.models import User
+from service.models import Service
 
 
 class ProviderChoiceField(forms.ModelChoiceField):
@@ -96,7 +98,9 @@ class BookingAdmin(admin.ModelAdmin):
     get_provider_name.short_description = "Provider Name"
 
     def get_provider_category(self, obj):
-        return obj.service_provider.category
+        # Get the category from Service model
+        service = Service.objects.filter(category=obj.service_provider.category).first()
+        return service.category if service else obj.service_provider.category
     get_provider_category.short_description = "Provider Category"
 
     def get_provider_email(self, obj):
