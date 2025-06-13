@@ -55,22 +55,21 @@ class BookingAdminForm(forms.ModelForm):
             self.fields['user'].queryset = User.objects.filter(id=instance.user_id)
             self.fields['user'].disabled = True
 
-        # Handle time slot availability
-        if 'date' in self.data and 'time_slot' in self.data:
+        # Only filter providers if both date and time slot are provided
+        if 'date' in self.data and 'time_slot' in self.data and self.data.get('date') and self.data.get('time_slot'):
             try:
                 date = self.data.get('date')
                 time_slot = self.data.get('time_slot')
-                if date and time_slot:
-                    booked_providers = Booking.objects.filter(
-                        date=date,
-                        time_slot=time_slot
-                    ).exclude(id=instance.id if instance and instance.pk else None).values_list('service_provider_id', flat=True)
-                    self.fields['service_provider'].queryset = self.fields['service_provider'].queryset.exclude(
-                        id__in=booked_providers
-                    )
+                booked_providers = Booking.objects.filter(
+                    date=date,
+                    time_slot=time_slot
+                ).exclude(id=instance.id if instance and instance.pk else None).values_list('service_provider_id', flat=True)
+                self.fields['service_provider'].queryset = self.fields['service_provider'].queryset.exclude(
+                    id__in=booked_providers
+                )
             except Exception:
                 pass
-        elif instance and instance.pk:
+        elif instance and instance.pk and instance.date and instance.time_slot:
             booked_providers = Booking.objects.filter(
                 date=instance.date,
                 time_slot=instance.time_slot
