@@ -2,6 +2,7 @@ from django import forms
 from django.contrib import admin
 from .models import Booking, User
 
+
 class ProviderChoiceField(forms.ModelChoiceField):
     def label_from_instance(self, obj):
         return f"{obj.first_name} {obj.last_name} ({obj.category}, {obj.location})"
@@ -16,18 +17,15 @@ class BookingAdminForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         instance = self.instance
 
-        # ✅ Lock user field to just current booking's user
         if instance and instance.pk:
             self.fields['user'].queryset = User.objects.filter(id=instance.user_id)
             self.fields['user'].disabled = True
 
-        # ✅ Label providers properly
         self.fields['service_provider'] = ProviderChoiceField(
             queryset=User.objects.filter(user_type='SERVICE_PROVIDER'),
             label='Service Provider'
         )
 
-        # ✅ Exclude already booked providers
         if 'date' in self.data and 'time_slot' in self.data:
             try:
                 date = self.data.get('date')
@@ -52,22 +50,20 @@ class BookingAdminForm(forms.ModelForm):
             )
 
 
-
 @admin.register(Booking)
 class BookingAdmin(admin.ModelAdmin):
     form = BookingAdminForm
 
     list_display = (
-    'get_user_name',
-    'get_user_email',
-    'get_provider_name',
-    'get_provider_email',
-    'date',
-    'time_slot',
-    'status',
-    'created_at',
-)
-
+        'get_user_name',
+        'get_user_email',
+        'get_provider_name',
+        'get_provider_email',
+        'date',
+        'time_slot',
+        'status',
+        'created_at',
+    )
 
     search_fields = (
         'user__email', 'user__first_name', 'user__last_name',
@@ -75,7 +71,7 @@ class BookingAdmin(admin.ModelAdmin):
         'user__contact', 'user__location',
     )
 
-    readonly_fields = ('user',)  
+    readonly_fields = ('user',)
 
     def get_user_name(self, obj):
         return f"{obj.user.first_name} {obj.user.last_name}"
@@ -92,4 +88,3 @@ class BookingAdmin(admin.ModelAdmin):
     def get_provider_email(self, obj):
         return obj.service_provider.email
     get_provider_email.short_description = "Provider Email"
-
