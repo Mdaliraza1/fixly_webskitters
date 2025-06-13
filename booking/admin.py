@@ -60,15 +60,16 @@ class BookingAdmin(admin.ModelAdmin):
     form = BookingAdminForm
 
     list_display = (
-        'user_name',
-        'user_email',
-        'provider_name',
-        'provider_email',
-        'date',
-        'time_slot',
-        'status',
-        'created_at',
-    )
+    'get_user_name',
+    'get_user_email',
+    'get_provider_name',
+    'get_provider_email',
+    'date',
+    'time_slot',
+    'status',
+    'created_at',
+)
+
 
     search_fields = (
         'user__email', 'user__first_name', 'user__last_name',
@@ -76,16 +77,21 @@ class BookingAdmin(admin.ModelAdmin):
         'user__contact', 'user__location',
     )
 
-    readonly_fields = ('user',)  # ✅ also mark as read-only in admin
+    readonly_fields = ('user',)  
 
     def get_user_name(self, obj):
         return f"{obj.user.first_name} {obj.user.last_name}"
+    get_user_name.short_description = "User Name"
 
     def get_user_email(self, obj):
         return obj.user.email
+    get_user_email.short_description = "User Email"
 
     def get_provider_name(self, obj):
-        return f"{obj.service_provider.first_name} {obj.service_provider.last_name} ({obj.service_provider.category}, {obj.service_provider.location})"
+        return f"{obj.service_provider.first_name} {obj.service_provider.last_name}"
+    get_provider_name.short_description = "Provider Name"
 
     def get_provider_email(self, obj):
         return obj.service_provider.email
+    get_provider_email.short_description = "Provider Email"
+
