@@ -10,7 +10,7 @@ class ProviderChoiceField(forms.ModelChoiceField):
 class BookingAdminForm(forms.ModelForm):
     class Meta:
         model = Booking
-        fields = ['user', 'service_provider', 'date', 'time_slot', 'status']
+        fields = [ 'service_provider', 'date', 'time_slot', 'status']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
