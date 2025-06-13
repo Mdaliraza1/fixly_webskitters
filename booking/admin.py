@@ -7,7 +7,10 @@ from service.models import Service
 
 class ProviderChoiceField(forms.ModelChoiceField):
     def label_from_instance(self, obj):
-        return f"{obj.first_name} {obj.last_name} ({obj.category}, {obj.location})"
+        # Get the category name from Service model
+        service = Service.objects.filter(category=obj.category).first()
+        category_display = service.category if service else obj.category
+        return f"{obj.first_name} {obj.last_name} ({category_display}, {obj.location})"
 
 
 class BookingAdminForm(forms.ModelForm):
@@ -98,7 +101,7 @@ class BookingAdmin(admin.ModelAdmin):
     get_provider_name.short_description = "Provider Name"
 
     def get_provider_category(self, obj):
-        # Get the category from Service model
+        # Get the category name from Service model
         service = Service.objects.filter(category=obj.service_provider.category).first()
         return service.category if service else obj.service_provider.category
     get_provider_category.short_description = "Provider Category"

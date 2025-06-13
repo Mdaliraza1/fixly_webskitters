@@ -18,9 +18,9 @@ class CustomUserAdmin(UserAdmin):
 
     list_display = (
         'email', 'first_name', 'last_name', 'user_type', 'contact',
-        'location', 'get_rating', 'get_provider_bookings', 'get_user_bookings'
+        'location', 'category', 'get_rating', 'get_provider_bookings', 'get_user_bookings'
     )
-    list_filter = ('user_type',)
+    list_filter = ('user_type', 'category')
     search_fields = ('email', 'username', 'first_name', 'last_name', 'contact', 'location')
     ordering = ('email',)
     filter_horizontal = ()
@@ -59,6 +59,15 @@ class CustomUserAdmin(UserAdmin):
     def get_user_bookings(self, obj):
         return obj.user_booking_count
     get_user_bookings.short_description = 'User Bookings'
+
+    def formfield_for_dbfield(self, db_field, **kwargs):
+        formfield = super().formfield_for_dbfield(db_field, **kwargs)
+        if db_field.name == "category":
+            # Get unique categories from Service model
+            from service.models import Service
+            categories = Service.objects.values_list('category', flat=True).distinct()
+            formfield.choices = [(cat, cat) for cat in categories]
+        return formfield
 
     actions = [
         export_as_csv_action(
