@@ -1,16 +1,12 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from django.db.models import Count, Avg, Q
-from django.utils.html import format_html
-from django.contrib.admin.views.decorators import staff_member_required
-from django.utils.decorators import method_decorator
-from django.views.generic import TemplateView
-
+from django.db.models import Count, Avg
+import json
+from django.core.serializers.json import DjangoJSONEncoder
 from .models import User
 from .forms import CustomUserChangeForm, CustomUserCreationForm
 from utils.admin_actions import export_as_csv_action
-
-from service.models import Service
+from django.template.response import TemplateResponse
 from booking.models import Booking
 from review.models import Review
 
@@ -72,92 +68,98 @@ class CustomUserAdmin(UserAdmin):
     ]
 
 
-@method_decorator(staff_member_required, name='dispatch')
-class DashboardView(TemplateView):
-    template_name = 'admin/dashboard.html'
+class DashboardView(admin.ModelAdmin):
+    change_list_template = "admin/dashboard.html"
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path("dashboard/", self.admin_site.admin_view(self.dashboard_view), name="dashboard"),
+        ]
+        return custom_urls + urls
 
-        # ⏱ Filter parameters
-        category = self.request.GET.get('category')
-        start_date = self.request.GET.get('start_date')
-        end_date = self.request.GET.get('end_date')
-        search = self.request.GET.get('search', '').strip()
+    def dashboard_view(self, request):
+        start_date = request.GET.get("start_date")
+        end_date = request.GET.get("end_date")
+        category_filter = request.GET.get("category")
+        search_query = request.GET.get("search")
 
-        bookings = Booking.objects.select_related('service_provider', 'user')
-        reviews = Review.objects.select_related('service_provider', 'reviewer')
+        bookings = Booking.objects.all()
+        reviews = Review.objects.all()
         users = User.objects.all()
-        services = Service.objects.all()
-
-        if category and category != 'all':
-            provider_ids = Service.objects.filter(category=category).values_list('provider_id', flat=True).distinct()
-            bookings = bookings.filter(service_provider__id__in=provider_ids)
-            reviews = reviews.filter(service_provider__id__in=provider_ids)
-
 
         if start_date:
             bookings = bookings.filter(date__gte=start_date)
+            reviews = reviews.filter(created_at__date__gte=start_date)
         if end_date:
             bookings = bookings.filter(date__lte=end_date)
+            reviews = reviews.filter(created_at__date__lte=end_date)
 
-        if search:
-            provider_filter = (
-                Q(service_provider__first_name__icontains=search) |
-                Q(service_provider__last_name__icontains=search) |
-                Q(service_provider__email__icontains=search)
-            )
-            bookings = bookings.filter(provider_filter)
-            reviews = reviews.filter(provider_filter)
+        if category_filter and category_filter != "all":
+            bookings = bookings.filter(service__category=category_filter)
+            reviews = reviews.filter(service_provider__services__category=category_filter)
 
-        # 📊 Bookings chart data (date-wise)
-        bookings_chart_data = [
-            {"date": b["date"].strftime("%Y-%m-%d"), "count": b["count"]}
-            for b in bookings.values("date").annotate(count=Count("id")).order_by("date")
-        ]
+        if search_query:
+            bookings = bookings.filter(service_provider__first_name__icontains=search_query) | \
+                       bookings.filter(service_provider__email__icontains=search_query)
+            reviews = reviews.filter(service_provider__first_name__icontains=search_query) | \
+                      reviews.filter(service_provider__email__icontains=search_query)
 
-        # 🏆 Top 5 providers by bookings
+        # Chart data
+        grouped = (
+            bookings.values("date")
+            .annotate(count=Count("id"))
+            .order_by("date")
+        )
+        labels = [b["date"].strftime("%Y-%m-%d") for b in grouped]
+        data = [b["count"] for b in grouped]
+
+        # Stats
+        statistics = {
+            "total_users": users.filter(user_type="CUSTOMER").count(),
+            "total_providers": users.filter(user_type="SERVICE_PROVIDER").count(),
+            "total_bookings": bookings.count(),
+            "average_rating": round(reviews.aggregate(avg=Avg("rating"))["avg"] or 0, 2)
+        }
+
+        # Top providers by bookings
+        top_providers = (
+            bookings.values("service_provider__first_name", "service_provider__last_name")
+            .annotate(bookings=Count("id"))
+            .order_by("-bookings")[:5]
+        )
         top_providers = [
-            {
-                'name': f"{p['service_provider__first_name']} {p['service_provider__last_name']}",
-                'email': p['service_provider__email'],
-                'bookings': p['count']
-            }
-            for p in bookings.values(
-                'service_provider__first_name',
-                'service_provider__last_name',
-                'service_provider__email'
-            ).annotate(count=Count('id')).order_by('-count')[:5]
+            {"name": f"{p['service_provider__first_name']} {p['service_provider__last_name']}", "bookings": p["bookings"]}
+            for p in top_providers
         ]
 
-        # ⭐ Top 5 providers by rating
+        # Top rated providers
+        top_rated = (
+            reviews.values("service_provider__first_name", "service_provider__last_name")
+            .annotate(rating=Avg("rating"))
+            .order_by("-rating")[:5]
+        )
         top_rated = [
-            {
-                'name': f"{p['service_provider__first_name']} {p['service_provider__last_name']}",
-                'email': p['service_provider__email'],
-                'rating': round(p['avg_rating'], 1)
-            }
-            for p in reviews.values(
-                'service_provider__first_name',
-                'service_provider__last_name',
-                'service_provider__email'
-            ).annotate(avg_rating=Avg('rating')).order_by('-avg_rating')[:5]
+            {"name": f"{p['service_provider__first_name']} {p['service_provider__last_name']}", "rating": round(p["rating"], 2)}
+            for p in top_rated
         ]
 
-        context.update({
-            'categories': services.values_list('category', flat=True).distinct(),
-            'statistics': {
-                'total_users': users.filter(user_type='USER').count(),
-                'total_providers': users.filter(user_type='SERVICE_PROVIDER').count(),
-                'total_bookings': bookings.count(),
-                'average_rating': round(reviews.aggregate(Avg('rating'))['rating__avg'] or 0, 1)
-            },
-            'bookings_over_time': bookings_chart_data,
-            'top_providers': top_providers,
-            'top_rated': top_rated,
-        })
+        categories = Booking.objects.values_list('service__category', flat=True).distinct()
 
-        return context
+        context = dict(
+            self.admin_site.each_context(request),
+            statistics=statistics,
+            top_providers=top_providers,
+            top_rated=top_rated,
+            categories=categories,
+            bookings_over_time_labels=json.dumps(labels, cls=DjangoJSONEncoder),
+            bookings_over_time_data=json.dumps(data, cls=DjangoJSONEncoder),
+        )
+
+        return TemplateResponse(request, "admin/dashboard.html", context)
+
+# Register DashboardView (use a dummy model or create a proxy model if needed)
+admin.site.register(User, DashboardView)
 
 
 

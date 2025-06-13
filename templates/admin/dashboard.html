@@ -4,25 +4,19 @@
 {% block title %}Fixly Admin Dashboard{% endblock %}
 
 {% block content %}
-<div class="dashboard-container" style="padding: 20px; font-family: sans-serif;">
+<div style="padding: 20px;">
+  <h1>📊 Fixly Admin Dashboard</h1>
 
-  <h1 style="font-size: 28px; margin-bottom: 25px;">📊 Fixly Admin Dashboard</h1>
-
-  <!-- Filters -->
-  <form method="get" class="filter-form"
-    style="display: flex; flex-wrap: wrap; gap: 15px; align-items: center; margin-bottom: 30px;">
-
+  <form method="get" style="margin-bottom: 30px; display: flex; gap: 15px; flex-wrap: wrap;">
     <div>
       <label><strong>📅 Date Range:</strong></label><br>
-      <input type="date" name="start_date" value="{{ request.GET.start_date }}" class="vDateField" />
-      <input type="date" name="end_date" value="{{ request.GET.end_date }}" class="vDateField" />
+      <input type="date" name="start_date" value="{{ request.GET.start_date }}">
+      <input type="date" name="end_date" value="{{ request.GET.end_date }}">
     </div>
-
     <div>
       <label><strong>🔍 Search Provider:</strong></label><br>
-      <input type="text" name="search" value="{{ request.GET.search }}" placeholder="Name or email" />
+      <input type="text" name="search" value="{{ request.GET.search }}" placeholder="Name or email">
     </div>
-
     <div>
       <label><strong>📁 Category:</strong></label><br>
       <select name="category">
@@ -32,50 +26,31 @@
         {% endfor %}
       </select>
     </div>
-
     <div>
       <label><strong>📈 Chart Type:</strong></label><br>
       <select name="chart_type">
-        <option value="line"
-          {% if request.GET.chart_type %}
-            {% if request.GET.chart_type == "line" %}selected{% endif %}
-          {% else %}
-            selected
-          {% endif %}
-        >Line</option>
-
-        <option value="bar"
-          {% if request.GET.chart_type == "bar" %}selected{% endif %}
-        >Bar</option>
-
-        <option value="pie"
-          {% if request.GET.chart_type == "pie" %}selected{% endif %}
-        >Pie</option>
+        <option value="line" {% if request.GET.chart_type == "line" or not request.GET.chart_type %}selected{% endif %}>Line</option>
+        <option value="bar" {% if request.GET.chart_type == "bar" %}selected{% endif %}>Bar</option>
+        <option value="pie" {% if request.GET.chart_type == "pie" %}selected{% endif %}>Pie</option>
       </select>
     </div>
-
     <div style="margin-top: 24px;">
       <button type="submit" class="btn btn-primary">Apply</button>
     </div>
   </form>
 
-  <!-- Key Stats -->
-  <div style="display: flex; flex-wrap: wrap; gap: 30px; margin-bottom: 35px; font-size: 16px;">
+  <div style="display: flex; flex-wrap: wrap; gap: 25px; font-size: 16px; margin-bottom: 30px;">
     <div><strong>👤 Total Users:</strong> {{ statistics.total_users }}</div>
     <div><strong>🧑‍🔧 Total Providers:</strong> {{ statistics.total_providers }}</div>
     <div><strong>📦 Total Bookings:</strong> {{ statistics.total_bookings }}</div>
     <div><strong>⭐ Average Rating:</strong> {{ statistics.average_rating }}</div>
   </div>
 
-  <!-- Chart -->
-  <div style="width: 100%; max-width: 1000px; margin: auto; margin-bottom: 40px;">
+  <div style="max-width: 1000px; margin-bottom: 40px;">
     <canvas id="bookingsChart" height="140"></canvas>
   </div>
 
-  <!-- Top Providers and Ratings -->
-  <div style="display: flex; justify-content: space-between; gap: 40px; flex-wrap: wrap;">
-
-    <!-- Top Booked Providers -->
+  <div style="display: flex; flex-wrap: wrap; gap: 40px;">
     <div style="flex: 1; min-width: 300px;">
       <h3>🏆 Top 5 Providers (by Bookings)</h3>
       <ul>
@@ -86,8 +61,6 @@
         {% endfor %}
       </ul>
     </div>
-
-    <!-- Top Rated Providers -->
     <div style="flex: 1; min-width: 300px;">
       <h3>⭐ Top 5 Rated Providers</h3>
       <ul>
@@ -98,21 +71,19 @@
         {% endfor %}
       </ul>
     </div>
-
   </div>
 </div>
 
-<!-- Chart.js Script -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
   const ctx = document.getElementById('bookingsChart').getContext('2d');
   const chartType = "{{ request.GET.chart_type|default:'line' }}";
 
   const data = {
-    labels: {{ bookings_over_time | map(attribute='date') | list | safe }},
+    labels: {{ bookings_over_time_labels|safe }},
     datasets: [{
       label: 'Bookings Over Time',
-      data: {{ bookings_over_time | map(attribute='count') | list | safe }},
+      data: {{ bookings_over_time_data|safe }},
       backgroundColor: chartType === 'pie' ? [
         'rgba(255, 99, 132, 0.5)',
         'rgba(54, 162, 235, 0.5)',
