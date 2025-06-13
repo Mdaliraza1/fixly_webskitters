@@ -1,10 +1,9 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.db.models import Count, Avg
-import json
-from django.core.serializers.json import DjangoJSONEncoder
 from django.urls import path
 from django.template.response import TemplateResponse
+from django.contrib.auth.models import Group
 
 from .models import User
 from .forms import CustomUserChangeForm, CustomUserCreationForm
@@ -13,7 +12,6 @@ from booking.models import Booking
 from review.models import Review
 
 
-@admin.register(User)
 class CustomUserAdmin(UserAdmin):
     form = CustomUserChangeForm
     add_form = CustomUserCreationForm
@@ -70,14 +68,16 @@ class CustomUserAdmin(UserAdmin):
     ]
 
 
-# ✅ Add dashboard to admin using custom view on AdminSite
 class CustomAdminSite(admin.AdminSite):
-    site_header = "Fixly Admin"
+    site_header = 'Fixly Admin'
+    site_title = 'Fixly Admin Portal'
+    index_title = 'Welcome to Fixly Admin Portal'
+    login_template = 'admin/login.html'
 
     def get_urls(self):
         urls = super().get_urls()
         custom_urls = [
-            path('registration/dashboard/', self.admin_view(self.dashboard_view), name="dashboard"),
+            path('registration/dashboard/', self.admin_view(self.dashboard_view), name="registration_dashboard"),
         ]
         return custom_urls + urls
 
@@ -115,47 +115,45 @@ class CustomAdminSite(admin.AdminSite):
             )
 
         grouped = bookings.values("date").annotate(count=Count("id")).order_by("date")
-        labels = [b["date"].strftime("%Y-%m-%d") for b in grouped]
-        data = [b["count"] for b in grouped]
-
-        statistics = {
-            "total_users": users.filter(user_type="CUSTOMER").count(),
-            "total_providers": users.filter(user_type="SERVICE_PROVIDER").count(),
-            "total_bookings": bookings.count(),
-            "average_rating": round(reviews.aggregate(avg=Avg("rating"))["avg"] or 0, 2)
-        }
-
-        top_providers = bookings.values(
-            "service_provider__first_name", "service_provider__last_name"
-        ).annotate(bookings=Count("id")).order_by("-bookings")[:5]
-
-        top_providers = [
-            {"name": f"{p['service_provider__first_name']} {p['service_provider__last_name']}", "bookings": p["bookings"]}
-            for p in top_providers
-        ]
-
-        top_rated = reviews.values(
-            "service_provider__first_name", "service_provider__last_name"
-        ).annotate(rating=Avg("rating")).order_by("-rating")[:5]
-
-        top_rated = [
-            {"name": f"{p['service_provider__first_name']} {p['service_provider__last_name']}", "rating": round(p["rating"], 2)}
-            for p in top_rated
-        ]
-
         categories = Booking.objects.values_list('service__category', flat=True).distinct()
 
         context = dict(
             self.each_context(request),
-            statistics=statistics,
-            top_providers=top_providers,
-            top_rated=top_rated,
+            statistics={
+                "total_users": users.filter(user_type="CUSTOMER").count(),
+                "total_providers": users.filter(user_type="SERVICE_PROVIDER").count(),
+                "total_bookings": bookings.count(),
+                "average_rating": round(reviews.aggregate(avg=Avg("rating"))["avg"] or 0, 2)
+            },
+            top_providers=[
+                {"name": f"{p['service_provider__first_name']} {p['service_provider__last_name']}", "bookings": p["bookings"]}
+                for p in bookings.values("service_provider__first_name", "service_provider__last_name").annotate(bookings=Count("id")).order_by("-bookings")[:5]
+            ],
+            top_rated=[
+                {"name": f"{p['service_provider__first_name']} {p['service_provider__last_name']}", "rating": round(p["rating"], 2)}
+                for p in reviews.values("service_provider__first_name", "service_provider__last_name").annotate(rating=Avg("rating")).order_by("-rating")[:5]
+            ],
             categories=categories,
             bookings_over_time=grouped,
         )
         return TemplateResponse(request, "admin/dashboard.html", context)
 
 
-# Instantiate and replace the default admin site
-custom_admin_site = CustomAdminSite()
+# Instantiate admin site and register models
+custom_admin_site = CustomAdminSite(name='custom_admin')
 custom_admin_site.register(User, CustomUserAdmin)
+
+# Register other models
+from service.models import Service
+from service.admin import ServiceAdmin
+from booking.models import Booking
+from booking.admin import BookingAdmin
+from review.models import Review
+from review.admin import ReviewAdmin
+
+custom_admin_site.register(Service, ServiceAdmin)
+custom_admin_site.register(Booking, BookingAdmin)
+custom_admin_site.register(Review, ReviewAdmin)
+
+# Unregister auth.Group
+admin.site.unregister(Group)
