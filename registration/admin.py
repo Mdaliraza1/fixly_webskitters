@@ -3,10 +3,12 @@ from django.contrib.auth.admin import UserAdmin
 from django.db.models import Count, Avg
 import json
 from django.core.serializers.json import DjangoJSONEncoder
+from django.urls import path
+from django.template.response import TemplateResponse
+
 from .models import User
 from .forms import CustomUserChangeForm, CustomUserCreationForm
 from utils.admin_actions import export_as_csv_action
-from django.template.response import TemplateResponse
 from booking.models import Booking
 from review.models import Review
 
@@ -68,13 +70,14 @@ class CustomUserAdmin(UserAdmin):
     ]
 
 
-class DashboardView(admin.ModelAdmin):
-    change_list_template = "admin/dashboard.html"
+# ✅ Add dashboard to admin using custom view on AdminSite
+class CustomAdminSite(admin.AdminSite):
+    site_header = "Fixly Admin"
 
     def get_urls(self):
         urls = super().get_urls()
         custom_urls = [
-            path("dashboard/", self.admin_site.admin_view(self.dashboard_view), name="dashboard"),
+            path('registration/dashboard/', self.admin_view(self.dashboard_view), name="dashboard"),
         ]
         return custom_urls + urls
 
@@ -100,21 +103,21 @@ class DashboardView(admin.ModelAdmin):
             reviews = reviews.filter(service_provider__services__category=category_filter)
 
         if search_query:
-            bookings = bookings.filter(service_provider__first_name__icontains=search_query) | \
-                       bookings.filter(service_provider__email__icontains=search_query)
-            reviews = reviews.filter(service_provider__first_name__icontains=search_query) | \
-                      reviews.filter(service_provider__email__icontains=search_query)
+            bookings = bookings.filter(
+                service_provider__first_name__icontains=search_query
+            ) | bookings.filter(
+                service_provider__email__icontains=search_query
+            )
+            reviews = reviews.filter(
+                service_provider__first_name__icontains=search_query
+            ) | reviews.filter(
+                service_provider__email__icontains=search_query
+            )
 
-        # Chart data
-        grouped = (
-            bookings.values("date")
-            .annotate(count=Count("id"))
-            .order_by("date")
-        )
+        grouped = bookings.values("date").annotate(count=Count("id")).order_by("date")
         labels = [b["date"].strftime("%Y-%m-%d") for b in grouped]
         data = [b["count"] for b in grouped]
 
-        # Stats
         statistics = {
             "total_users": users.filter(user_type="CUSTOMER").count(),
             "total_providers": users.filter(user_type="SERVICE_PROVIDER").count(),
@@ -122,23 +125,19 @@ class DashboardView(admin.ModelAdmin):
             "average_rating": round(reviews.aggregate(avg=Avg("rating"))["avg"] or 0, 2)
         }
 
-        # Top providers by bookings
-        top_providers = (
-            bookings.values("service_provider__first_name", "service_provider__last_name")
-            .annotate(bookings=Count("id"))
-            .order_by("-bookings")[:5]
-        )
+        top_providers = bookings.values(
+            "service_provider__first_name", "service_provider__last_name"
+        ).annotate(bookings=Count("id")).order_by("-bookings")[:5]
+
         top_providers = [
             {"name": f"{p['service_provider__first_name']} {p['service_provider__last_name']}", "bookings": p["bookings"]}
             for p in top_providers
         ]
 
-        # Top rated providers
-        top_rated = (
-            reviews.values("service_provider__first_name", "service_provider__last_name")
-            .annotate(rating=Avg("rating"))
-            .order_by("-rating")[:5]
-        )
+        top_rated = reviews.values(
+            "service_provider__first_name", "service_provider__last_name"
+        ).annotate(rating=Avg("rating")).order_by("-rating")[:5]
+
         top_rated = [
             {"name": f"{p['service_provider__first_name']} {p['service_provider__last_name']}", "rating": round(p["rating"], 2)}
             for p in top_rated
@@ -147,19 +146,16 @@ class DashboardView(admin.ModelAdmin):
         categories = Booking.objects.values_list('service__category', flat=True).distinct()
 
         context = dict(
-            self.admin_site.each_context(request),
+            self.each_context(request),
             statistics=statistics,
             top_providers=top_providers,
             top_rated=top_rated,
             categories=categories,
-            bookings_over_time_labels=json.dumps(labels, cls=DjangoJSONEncoder),
-            bookings_over_time_data=json.dumps(data, cls=DjangoJSONEncoder),
+            bookings_over_time=grouped,
         )
-
         return TemplateResponse(request, "admin/dashboard.html", context)
 
-# Register DashboardView (use a dummy model or create a proxy model if needed)
-admin.site.register(User, DashboardView)
 
-
-
+# Instantiate and replace the default admin site
+custom_admin_site = CustomAdminSite()
+custom_admin_site.register(User, CustomUserAdmin)
