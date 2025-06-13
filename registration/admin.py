@@ -18,7 +18,7 @@ class CustomUserAdmin(UserAdmin):
 
     list_display = (
         'email', 'first_name', 'last_name', 'user_type', 'contact',
-        'location', 'category', 'get_rating', 'get_provider_bookings', 'get_user_bookings'
+        'location', 'get_category_display', 'get_rating', 'get_provider_bookings', 'get_user_bookings'
     )
     list_filter = ('user_type', 'category')
     search_fields = ('email', 'username', 'first_name', 'last_name', 'contact', 'location')
@@ -59,6 +59,28 @@ class CustomUserAdmin(UserAdmin):
     def get_user_bookings(self, obj):
         return obj.user_booking_count
     get_user_bookings.short_description = 'User Bookings'
+
+    def get_category_display(self, obj):
+        if not obj.category:
+            return '-'
+        # Get the category name from Service model
+        from service.models import Service
+        service = Service.objects.filter(category=obj.category).first()
+        if service:
+            return service.category
+        # If no service found, try to get a valid category name
+        valid_categories = ['Plumber', 'Carpenter', 'Electrician', 'Cleaning']
+        if obj.category in valid_categories:
+            return obj.category
+        # If category is a number, try to map it to a valid category
+        try:
+            category_index = int(obj.category) - 1
+            if 0 <= category_index < len(valid_categories):
+                return valid_categories[category_index]
+        except (ValueError, TypeError):
+            pass
+        return obj.category
+    get_category_display.short_description = 'Category'
 
     def formfield_for_dbfield(self, db_field, **kwargs):
         formfield = super().formfield_for_dbfield(db_field, **kwargs)

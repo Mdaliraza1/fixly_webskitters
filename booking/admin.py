@@ -110,6 +110,13 @@ class BookingAdmin(admin.ModelAdmin):
         category_value = obj.service_provider.category
         if category_value in valid_categories:
             return category_value
+        # If category is a number, try to map it to a valid category
+        try:
+            category_index = int(category_value) - 1
+            if 0 <= category_index < len(valid_categories):
+                return valid_categories[category_index]
+        except (ValueError, TypeError):
+            pass
         return category_value
     get_provider_category.short_description = "Provider Category"
 
