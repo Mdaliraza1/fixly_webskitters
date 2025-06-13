@@ -17,19 +17,22 @@ class BookingAdminForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         instance = self.instance
 
+        # Initialize user field first
+        self.fields['user'] = forms.ModelChoiceField(
+            queryset=User.objects.filter(user_type='USER'),
+            label='User'
+        )
+
         # Initialize service provider field
         self.fields['service_provider'] = ProviderChoiceField(
             queryset=User.objects.filter(user_type='SERVICE_PROVIDER'),
             label='Service Provider'
         )
 
-        # Handle user field
+        # Handle user field for existing bookings
         if instance and instance.pk and hasattr(instance, 'user_id'):
             self.fields['user'].queryset = User.objects.filter(id=instance.user_id)
             self.fields['user'].disabled = True
-        else:
-            # For new bookings, show all users
-            self.fields['user'].queryset = User.objects.filter(user_type='USER')
 
         # Handle time slot availability
         if 'date' in self.data and 'time_slot' in self.data:
