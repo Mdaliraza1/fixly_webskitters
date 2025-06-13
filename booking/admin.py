@@ -9,7 +9,23 @@ class ProviderChoiceField(forms.ModelChoiceField):
     def label_from_instance(self, obj):
         # Get the category name from Service model
         service = Service.objects.filter(category=obj.category).first()
-        category_display = service.category if service else obj.category
+        if service:
+            category_display = service.category
+        else:
+            # If no service found, try to get a valid category name
+            valid_categories = ['Plumber', 'Carpenter', 'Electrician', 'Cleaning']
+            if obj.category in valid_categories:
+                category_display = obj.category
+            else:
+                # If category is a number, try to map it to a valid category
+                try:
+                    category_index = int(obj.category) - 1
+                    if 0 <= category_index < len(valid_categories):
+                        category_display = valid_categories[category_index]
+                    else:
+                        category_display = obj.category
+                except (ValueError, TypeError):
+                    category_display = obj.category
         return f"{obj.first_name} {obj.last_name} ({category_display}, {obj.location})"
 
 
@@ -28,7 +44,7 @@ class BookingAdminForm(forms.ModelForm):
             label='User'
         )
 
-        # Initialize service provider field
+        # Initialize service provider field with proper category display
         self.fields['service_provider'] = ProviderChoiceField(
             queryset=User.objects.filter(user_type='SERVICE_PROVIDER'),
             label='Service Provider'
@@ -107,17 +123,16 @@ class BookingAdmin(admin.ModelAdmin):
             return service.category
         # If no service found, try to get a valid category name
         valid_categories = ['Plumber', 'Carpenter', 'Electrician', 'Cleaning']
-        category_value = obj.service_provider.category
-        if category_value in valid_categories:
-            return category_value
+        if obj.service_provider.category in valid_categories:
+            return obj.service_provider.category
         # If category is a number, try to map it to a valid category
         try:
-            category_index = int(category_value) - 1
+            category_index = int(obj.service_provider.category) - 1
             if 0 <= category_index < len(valid_categories):
                 return valid_categories[category_index]
         except (ValueError, TypeError):
             pass
-        return category_value
+        return obj.service_provider.category
     get_provider_category.short_description = "Provider Category"
 
     def get_provider_email(self, obj):

@@ -4,12 +4,34 @@ from django.db.models import Count, Avg
 from django.urls import path
 from django.template.response import TemplateResponse
 from django.contrib.auth.models import Group
+from django.contrib.admin import SimpleListFilter
 
 from .models import User
 from .forms import CustomUserChangeForm, CustomUserCreationForm
 from utils.admin_actions import export_as_csv_action
 from booking.models import Booking
 from review.models import Review
+
+
+class CategoryFilter(SimpleListFilter):
+    title = 'Category'
+    parameter_name = 'category'
+
+    def lookups(self, request, model_admin):
+        valid_categories = ['Plumber', 'Carpenter', 'Electrician', 'Cleaning']
+        return [(cat, cat) for cat in valid_categories]
+
+    def queryset(self, request, queryset):
+        if self.value():
+            # Try to find the category in the Service model first
+            from service.models import Service
+            service = Service.objects.filter(category=self.value()).first()
+            if service:
+                return queryset.filter(category=service.category)
+            
+            # If not found in Service model, try direct match
+            return queryset.filter(category=self.value())
+        return queryset
 
 
 class CustomUserAdmin(UserAdmin):
@@ -20,7 +42,7 @@ class CustomUserAdmin(UserAdmin):
         'email', 'first_name', 'last_name', 'user_type', 'contact',
         'location', 'get_category_display', 'get_rating', 'get_provider_bookings', 'get_user_bookings'
     )
-    list_filter = ('user_type', 'category')
+    list_filter = ('user_type', CategoryFilter)
     search_fields = ('email', 'username', 'first_name', 'last_name', 'contact', 'location')
     ordering = ('email',)
     filter_horizontal = ()
