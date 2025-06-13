@@ -5,12 +5,8 @@ from .models import Booking, User
 
 class ProviderChoiceField(forms.ModelChoiceField):
     def label_from_instance(self, obj):
-        return f"{obj.first_name} {obj.last_name} ({obj.category}, {obj.location})"
-
-
-class UserChoiceField(forms.ModelChoiceField):
-    def label_from_instance(self, obj):
-        return f"{obj.first_name} {obj.last_name} ({obj.email})"
+        # Clean title case + remove weird tuple-like display
+        return f"{obj.first_name.title()} {obj.last_name.title()} ({obj.category}, {obj.location})"
 
 
 class BookingAdminForm(forms.ModelForm):
@@ -21,11 +17,6 @@ class BookingAdminForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # Initial queryset setup
-        self.fields['user'] = UserChoiceField(
-            queryset=User.objects.filter(user_type='CUSTOMER'),
-            label='User'
-        )
         self.fields['service_provider'] = ProviderChoiceField(
             queryset=User.objects.filter(user_type='SERVICE_PROVIDER'),
             label='Service Provider'
@@ -35,13 +26,14 @@ class BookingAdminForm(forms.ModelForm):
 
         # Prevent same person as both user and provider
         if instance and instance.pk:
-            self.fields['user'].queryset = self.fields['user'].queryset.exclude(id=instance.service_provider.id)
-            self.fields['service_provider'].queryset = self.fields['service_provider'].queryset.exclude(id=instance.user.id)
+            if instance.user_id != instance.service_provider_id:
+                self.fields['user'].queryset = self.fields['user'].queryset.exclude(id=instance.service_provider.id)
+        self.fields['service_provider'].queryset = self.fields['service_provider'].queryset.exclude(id=instance.user.id)
+
 
         # Exclude already booked providers for selected date/time
         if 'date' in self.data and 'time_slot' in self.data:
             try:
-                from datetime import time
                 date = self.data.get('date')
                 time_slot = self.data.get('time_slot')
 
@@ -54,10 +46,8 @@ class BookingAdminForm(forms.ModelForm):
                     self.fields['service_provider'].queryset = self.fields['service_provider'].queryset.exclude(
                         id__in=booked_providers
                     )
-
-            except Exception as e:
-                pass  # In case form is incomplete, skip filtering
-
+            except Exception:
+                pass  # Handle early validation stages
         elif instance and instance.pk:
             # On editing, don't allow assigning a provider already booked at same slot
             booked_providers = Booking.objects.filter(
@@ -77,7 +67,7 @@ class BookingAdmin(admin.ModelAdmin):
     list_display = (
         'get_user_name',
         'get_user_email',
-        'get_provider_name',
+        'get_provider_name_with_location',  # updated to be more readable
         'get_provider_email',
         'date',
         'time_slot',
@@ -92,13 +82,17 @@ class BookingAdmin(admin.ModelAdmin):
     )
 
     def get_user_name(self, obj):
-        return f"{obj.user.first_name} {obj.user.last_name}"
+        return f"{obj.user.first_name.title()} {obj.user.last_name.title()}"
+    get_user_name.short_description = "User Name"
 
     def get_user_email(self, obj):
         return obj.user.email
+    get_user_email.short_description = "User Email"
 
-    def get_provider_name(self, obj):
-        return f"{obj.service_provider.first_name} {obj.service_provider.last_name}"
+    def get_provider_name_with_location(self, obj):
+        return f"{obj.service_provider.first_name.title()} {obj.service_provider.last_name.title()} ({obj.service_provider.category}, {obj.service_provider.location})"
+    get_provider_name_with_location.short_description = "Service Provider"
 
     def get_provider_email(self, obj):
         return obj.service_provider.email
+    get_provider_email.short_description = "Provider Email"
