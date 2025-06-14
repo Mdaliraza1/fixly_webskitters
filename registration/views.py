@@ -477,3 +477,10 @@ class ServiceProviderListView(APIView):
         queryset = User.objects.filter(**filters)
         serializer = ProviderSerializer(queryset, many=True)
         return Response({'providers': serializer.data}, status=status.HTTP_200_OK)
+
+def get_category_name(user):
+    if user.category:  # New ForeignKey
+        return user.category.category
+    elif user.legacy_category:  # Old CharField
+        return user.legacy_category
+    return '-'
