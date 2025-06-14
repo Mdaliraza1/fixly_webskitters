@@ -5,6 +5,7 @@ from django.urls import path
 from django.template.response import TemplateResponse
 from django.contrib.auth.models import Group
 from django.contrib.admin import SimpleListFilter
+from rest_framework_simplejwt.token_blacklist.models import OutstandingToken, BlacklistedToken
 
 from .models import User
 from .forms import CustomUserChangeForm, CustomUserCreationForm
@@ -33,13 +34,14 @@ class CustomUserAdmin(UserAdmin):
     add_form = CustomUserCreationForm
 
     list_display = (
-        'email', 'first_name', 'last_name', 'user_type', 'contact',
+        'user_id', 'email', 'first_name', 'last_name', 'user_type', 'contact',
         'location', 'get_category_display', 'get_rating', 'get_provider_bookings', 'get_user_bookings'
     )
     list_filter = ('user_type', CategoryFilter)
     search_fields = ('email', 'username', 'first_name', 'last_name', 'contact', 'location')
     ordering = ('email',)
     filter_horizontal = ()
+    readonly_fields = ('user_id',)
 
     fieldsets = (
         (None, {'fields': ('email', 'password')}),
@@ -186,6 +188,13 @@ custom_admin_site.register(Review, ReviewAdmin)
 
 # Unregister auth.Group
 admin.site.unregister(Group)
+
+# Unregister OutstandingToken and BlacklistedToken
+try:
+    admin.site.unregister(OutstandingToken)
+    admin.site.unregister(BlacklistedToken)
+except admin.sites.NotRegistered:
+    pass
 
 # Set the custom admin site as the default
 admin.site = custom_admin_site

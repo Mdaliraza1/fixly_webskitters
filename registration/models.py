@@ -14,6 +14,7 @@ class User(AbstractUser):
     )
 
     email = models.EmailField(_('email address'), unique=True)
+    user_id = models.CharField(max_length=20, unique=True, blank=True, null=True, editable=False)
 
     user_type = models.CharField(
         max_length=20,
@@ -65,6 +66,12 @@ class User(AbstractUser):
             self.is_superuser = True
 
     def save(self, *args, **kwargs):
+        if not self.user_id:
+            from datetime import datetime
+            year = datetime.now().year % 100  # last two digits of year
+            prefix = 'CUS' if self.user_type == 'USER' else 'PRO'
+            count = User.objects.filter(user_type=self.user_type, user_id__startswith=f'{prefix}{year}').count() + 1
+            self.user_id = f"{prefix}{year}{datetime.now().year}{count:05d}"
         self.full_clean()
         super().save(*args, **kwargs)
 

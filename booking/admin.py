@@ -103,7 +103,8 @@ class BookingAdmin(admin.ModelAdmin):
         'user__contact', 'user__location',
     )
 
-    readonly_fields = ('user',)
+    # Remove 'user' from readonly_fields to make it editable
+    # readonly_fields = ('user',)
 
     def get_user_name(self, obj):
         return f"{obj.user.first_name} {obj.user.last_name}"
