@@ -18,19 +18,13 @@ class CategoryFilter(SimpleListFilter):
     parameter_name = 'category'
 
     def lookups(self, request, model_admin):
-        valid_categories = ['Plumber', 'Carpenter', 'Electrician', 'Cleaning']
-        return [(cat, cat) for cat in valid_categories]
+        from service.models import Service
+        categories = Service.objects.values_list('id', 'category').distinct()
+        return [(cat_id, cat_name) for cat_id, cat_name in categories]
 
     def queryset(self, request, queryset):
         if self.value():
-            # Try to find the category in the Service model first
-            from service.models import Service
-            service = Service.objects.filter(category=self.value()).first()
-            if service:
-                return queryset.filter(category=service.category)
-            
-            # If not found in Service model, try direct match
-            return queryset.filter(category=self.value())
+            return queryset.filter(category_id=self.value())
         return queryset
 
 
@@ -83,34 +77,16 @@ class CustomUserAdmin(UserAdmin):
     get_user_bookings.short_description = 'User Bookings'
 
     def get_category_display(self, obj):
-        if not obj.category:
-            return '-'
-        # Get the category name from Service model
-        from service.models import Service
-        service = Service.objects.filter(category=obj.category).first()
-        if service:
-            return service.category
-        # If no service found, try to get a valid category name
-        valid_categories = ['Plumber', 'Carpenter', 'Electrician', 'Cleaning']
-        if obj.category in valid_categories:
-            return obj.category
-        # If category is a number, try to map it to a valid category
-        try:
-            category_index = int(obj.category) - 1
-            if 0 <= category_index < len(valid_categories):
-                return valid_categories[category_index]
-        except (ValueError, TypeError):
-            pass
-        return obj.category
+        return obj.category.category if obj.category else '-'
     get_category_display.short_description = 'Category'
 
     def formfield_for_dbfield(self, db_field, **kwargs):
         formfield = super().formfield_for_dbfield(db_field, **kwargs)
         if db_field.name == "category":
-            # Get unique categories from Service model
             from service.models import Service
-            categories = Service.objects.values_list('category', flat=True).distinct()
-            formfield.choices = [(cat, cat) for cat in categories]
+            categories = Service.objects.values_list('id', 'category').distinct()
+            formfield.queryset = Service.objects.all()
+            formfield.label_from_instance = lambda obj: obj.category
         return formfield
 
     actions = [

@@ -4,6 +4,7 @@ from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from datetime import timedelta
 from django.utils import timezone
+from service.models import Service
 
 class User(AbstractUser):
     USER_TYPE_CHOICES = (
@@ -43,10 +44,11 @@ class User(AbstractUser):
         null=True,
         verbose_name=_('location')
     )
-    category = models.CharField(
-        max_length=100,
-        blank=True,
+    category = models.ForeignKey(
+        Service,
+        on_delete=models.SET_NULL,
         null=True,
+        blank=True,
         verbose_name=_('service category')
     )
 

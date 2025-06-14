@@ -6,6 +6,7 @@ from django.core.exceptions import ValidationError
 from django.contrib.auth import authenticate
 from django.utils.translation import gettext_lazy as _
 import re
+from service.models import Service
 
 def validate_email_format(email):
     if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
@@ -35,6 +36,11 @@ class CustomUserCreationForm(UserCreationForm):
         model = User
         fields = ('email', 'username', 'first_name', 'last_name', 'user_type', 'contact', 'location', 'category')
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if 'category' in self.fields:
+            self.fields['category'].queryset = Service.objects.all()
+
     def clean_email(self):
         return validate_email_format(self.cleaned_data['email'])
 
@@ -48,6 +54,11 @@ class CustomUserChangeForm(UserChangeForm):
     class Meta(UserChangeForm.Meta):
         model = User
         fields = ('email', 'username', 'first_name', 'last_name', 'user_type', 'contact', 'location', 'category', 'gender', 'is_active', 'is_staff', 'is_superuser')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if 'category' in self.fields:
+            self.fields['category'].queryset = Service.objects.all()
 
     def clean_email(self):
         return validate_email_format(self.cleaned_data['email'])

@@ -91,6 +91,7 @@ class CustomerRegistrationSerializer(serializers.ModelSerializer):
 
 class ServiceProviderRegistrationSerializer(serializers.ModelSerializer):
     confirm_password = serializers.CharField(write_only=True)
+    category = serializers.PrimaryKeyRelatedField(queryset=None)
 
     class Meta:
         model = User
@@ -100,6 +101,11 @@ class ServiceProviderRegistrationSerializer(serializers.ModelSerializer):
             'location', 'category'
         ]
         extra_kwargs = {'password': {'write_only': True}}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from service.models import Service
+        self.fields['category'].queryset = Service.objects.all()
 
     def validate_email(self, value):
         validate_email_format(value)
@@ -161,9 +167,16 @@ class UserUpdateSerializer(serializers.ModelSerializer):
 
 
 class ServiceProviderUpdateSerializer(serializers.ModelSerializer):
+    category = serializers.PrimaryKeyRelatedField(queryset=None)
+
     class Meta:
         model = User
         fields = ['first_name', 'last_name', 'contact', 'gender', 'email', 'location', 'category']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        from service.models import Service
+        self.fields['category'].queryset = Service.objects.all()
 
     def validate(self, data):
         user = self.instance
