@@ -1,0 +1,34 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block title %}Fixly Admin{% endblock %}
+
+{% block branding %}
+  <h1 id="site-name"><a href="/admin/">Fixly Admin</a></h1>
+{% endblock %}
+
+{% block nav-global %}
+  <div id="nav-global">
+    <a href="/admin/registration/dashboard/" class="button" style="margin-right: 10px;">Dashboard</a>
+    {{ block.super }}
+  </div>
+{% endblock %}
+
+{% block extrahead %}
+  {{ block.super }}
+  <style>
+    #nav-global .button {
+      display: inline-block;
+      padding: 6px 16px;
+      background: #007bff;
+      color: #fff !important;
+      border-radius: 4px;
+      text-decoration: none;
+      font-weight: bold;
+      margin-bottom: 8px;
+    }
+    #nav-global .button:hover {
+      background: #0056b3;
+    }
+  </style>
+{% endblock %} 

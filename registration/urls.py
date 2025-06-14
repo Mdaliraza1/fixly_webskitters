@@ -9,7 +9,11 @@ from .views import (
     ServiceProviderListView,
     LoginView,
     LogoutView,
-    create_admin_view
+    create_admin_view,
+    ValidateOTPView,
+    ResendOTPView,
+    ValidateProviderOTPView,
+    ResendProviderOTPView
 )
 from . import views
 
@@ -25,4 +29,8 @@ urlpatterns = [
     path('update/customer/', UserUpdateView.as_view(), name='update_customer'),
     path('update/provider/', ProviderUpdateView.as_view(), name='update_provider'),
     path('providers/', ServiceProviderListView.as_view(), name='provider_list'),
+    path('validate-otp/', ValidateOTPView.as_view(), name='validate_otp'),
+    path('resend-otp/', ResendOTPView.as_view(), name='resend_otp'),
+    path('validate-provider-otp/', ValidateProviderOTPView.as_view(), name='validate_provider_otp'),
+    path('resend-provider-otp/', ResendProviderOTPView.as_view(), name='resend_provider_otp'),
 ]

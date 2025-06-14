@@ -210,3 +210,7 @@ custom_admin_site.register(Review, ReviewAdmin)
 
 # Unregister auth.Group
 admin.site.unregister(Group)
+
+# Set the custom admin site as the default
+admin.site = custom_admin_site
+admin.sites.site = custom_admin_site
