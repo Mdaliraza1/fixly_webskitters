@@ -15,6 +15,7 @@ from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from django.core.cache import cache
 from datetime import timedelta
+from django.utils import timezone
 
 from .serializers import (
     CustomerRegistrationSerializer, ServiceProviderRegistrationSerializer,
@@ -60,7 +61,8 @@ def send_otp_email(email, otp):
     subject = 'Your Fixly Registration OTP'
     html_message = render_to_string('registration/email/otp_email.html', {
         'otp': otp,
-        'email': email
+        'email': email,
+        'year': timezone.now().year
     })
     plain_message = strip_tags(html_message)
     

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Booking Confirmation - Fixly</title>
+    <style>
+        body { font-family: 'Segoe UI', Arial, sans-serif; background: #f7f7f7; margin: 0; padding: 0; }
+        .container { max-width: 500px; margin: 40px auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); padding: 32px 24px; }
+        .header { text-align: center; margin-bottom: 24px; }
+        .header h1 { color: #007bff; margin: 0; font-size: 2rem; }
+        .brand { color: #222; font-weight: 600; font-size: 1.1rem; letter-spacing: 1px; }
+        .details { margin: 24px 0; }
+        .details-table { width: 100%; border-collapse: collapse; }
+        .details-table td { padding: 8px 0; }
+        .label { color: #888; font-size: 0.97rem; width: 40%; }
+        .value { color: #222; font-weight: 500; }
+        .footer { margin-top: 32px; text-align: center; color: #888; font-size: 0.95rem; }
+        .highlight { color: #007bff; font-weight: bold; font-size: 1.1rem; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Booking Confirmed!</h1>
+            <div class="brand">by Md Ali Raza | Fixly</div>
+        </div>
+        <p>Dear {{ user.first_name }},</p>
+        <p>Your booking has been <span class="highlight">{{ action }}</span> successfully. Here are your booking details:</p>
+        <div class="details">
+            <table class="details-table">
+                <tr>
+                    <td class="label">Booking ID:</td>
+                    <td class="value">{{ booking.booking_id }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Service Provider:</td>
+                    <td class="value">{{ booking.service_provider.first_name }} {{ booking.service_provider.last_name }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Date:</td>
+                    <td class="value">{{ booking.date }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Time Slot:</td>
+                    <td class="value">{{ booking.time_slot }}</td>
+                </tr>
+                <tr>
+                    <td class="label">Status:</td>
+                    <td class="value">{{ booking.status }}</td>
+                </tr>
+            </table>
+        </div>
+        <p style="margin-top: 24px;">Thank you for choosing <span class="brand">Fixly</span>.<br>We look forward to serving you!</p>
+        <div class="footer">
+            &copy; {{ year }} Md Ali Raza | Fixly. All rights reserved.<br>
+            <span style="font-size:0.9em;">This is an automated message. Please do not reply.</span>
+        </div>
+    </div>
+</body>
+</html> 

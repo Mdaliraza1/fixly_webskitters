@@ -3,6 +3,10 @@ from django.contrib import admin
 from .models import Booking
 from registration.models import User
 from service.models import Service
+from django.core.mail import send_mail
+from django.conf import settings
+from django.template.loader import render_to_string
+from django.utils import timezone
 
 
 class ProviderChoiceField(forms.ModelChoiceField):
@@ -128,3 +132,26 @@ class BookingAdmin(admin.ModelAdmin):
     def get_provider_email(self, obj):
         return obj.service_provider.email
     get_provider_email.short_description = "Provider Email"
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        # Send confirmation email after booking is created or edited
+        subject = 'Booking Confirmation - Fixly'
+        action = 'updated' if change else 'created'
+        context = {
+            'user': obj.user,
+            'booking': obj,
+            'action': action,
+            'year': timezone.now().year,
+        }
+        html_message = render_to_string('booking/email/booking_confirmation.html', context)
+        from django.utils.html import strip_tags
+        plain_message = strip_tags(html_message)
+        send_mail(
+            subject,
+            plain_message,
+            settings.DEFAULT_FROM_EMAIL,
+            [obj.user.email],
+            html_message=html_message,
+            fail_silently=True,
+        )
