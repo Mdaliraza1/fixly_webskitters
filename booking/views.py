@@ -15,6 +15,7 @@ from .serializers import (
     ProviderBookingSerializer,
     UpdateBookingStatusSerializer,
 )
+from utils.email import send_booking_confirmation_email
 
 class CreateBookingView(APIView):
     permission_classes = [IsAuthenticated]
@@ -32,7 +33,9 @@ class CreateBookingView(APIView):
         serializer = BookingSerializer(data=data, context={'user': user})
         if serializer.is_valid():
             try:
-                serializer.save(user=user)
+                booking = serializer.save(user=user)
+                # Send confirmation email after booking creation
+                send_booking_confirmation_email(user, booking, 'created')
                 return Response(serializer.data, status=status.HTTP_201_CREATED)
             except IntegrityError:
                 return Response({'detail': 'This time slot is already booked.'}, status=status.HTTP_400_BAD_REQUEST)
