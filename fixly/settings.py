@@ -10,7 +10,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Security
 SECRET_KEY = 'django-insecure-^ri)g2#*bkb14-+-v1h&u&oyw#7%1=z#4oxj0a4c-5p*y-82+d'
-DEBUG = True
+DEBUG = False
 ALLOWED_HOSTS = ["*"]
 
 # Application definition
@@ -254,10 +254,8 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'ali.fixly@gmail.com'
-EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')  # You'll need to set this in your .env file
+EMAIL_HOST_PASSWORD ='pxcfllifrimcjodz'  # You'll need to set this in your .env file
 DEFAULT_FROM_EMAIL = 'ali.fixly@gmail.com'
 
 # For development/testing, you can use this instead of SMTP
-if DEBUG:
-    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
